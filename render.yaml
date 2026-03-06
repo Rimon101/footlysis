@@ -38,11 +38,9 @@ services:
       # You can add FRONTEND_URL here later if needed for CORS
       - fromGroup: footlysis-secrets
 
-  # 3. React Frontend
-  - type: web
+  # 3. React Frontend (Static Site - free by default)
+  - type: static
     name: footlysis-frontend
-    env: static
-    plan: free
     buildCommand: |
       cd frontend
       npm install

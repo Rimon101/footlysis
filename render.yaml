@@ -40,9 +40,7 @@ services:
       npm run build
     staticPublishPath: frontend/dist
     envVars:
+      # Public URL of the backend (fromService only gives internal addresses)
       - key: VITE_API_URL
-        fromService:
-          type: web
-          name: footlysis-backend
-          property: host
+        value: https://footlysis-backend.onrender.com
       - fromGroup: footlysis-secrets

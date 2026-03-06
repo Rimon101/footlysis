@@ -12,10 +12,13 @@ class Settings(BaseSettings):
 
     @property
     def get_database_url(self) -> str:
-        # Render supplies postgres:// but SQLAlchemy async needs postgresql+asyncpg://
-        if self.DATABASE_URL.startswith("postgres://"):
-            return self.DATABASE_URL.replace("postgres://", "postgresql+asyncpg://", 1)
-        return self.DATABASE_URL
+        url = self.DATABASE_URL
+        # Render supplies postgres:// or postgresql:// but SQLAlchemy async needs postgresql+asyncpg://
+        if url.startswith("postgres://"):
+            return url.replace("postgres://", "postgresql+asyncpg://", 1)
+        if url.startswith("postgresql://"):
+            return url.replace("postgresql://", "postgresql+asyncpg://", 1)
+        return url
     SECRET_KEY: str = "footlysis-secret-key-change-in-production"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 10080

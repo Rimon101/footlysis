@@ -36,8 +36,9 @@ services:
       - key: ENVIRONMENT
         value: production
       # You can add FRONTEND_URL here later if needed for CORS
-    envVarGroups:
-      - footlysis-secrets
+      - key: ADMIN_API_KEY
+        fromGroup: footlysis-secrets
+        property: ADMIN_API_KEY
 
   # 3. React Frontend
   - type: web

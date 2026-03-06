@@ -1,8 +1,9 @@
-services:
+databases:
   # 1. PostgreSQL Database
-  - type: pgo
-    name: footlysis-db
+  - name: footlysis-db
     plan: free
+
+services:
 
   # 2. FastAPI Backend
   - type: web

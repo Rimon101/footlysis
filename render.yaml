@@ -34,7 +34,6 @@ services:
   - type: web
     name: footlysis-frontend
     runtime: static
-    plan: free
     buildCommand: |
       cd frontend
       npm install

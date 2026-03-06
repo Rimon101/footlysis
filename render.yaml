@@ -1,0 +1,58 @@
+services:
+  # 1. PostgreSQL Database
+  - type: pgo
+    name: footlysis-db
+    plan: free
+
+  # 2. FastAPI Backend
+  - type: web
+    name: footlysis-backend
+    env: python
+    region: frankfurt # Can be changed
+    plan: free
+    buildCommand: |
+      cd backend
+      pip install -r requirements.txt
+    startCommand: |
+      cd backend
+      if [ -z "$DATABASE_URL" ]; then echo "Missing DB URL"; exit 1; fi
+      # Apply migrations if using alembic, otherwise just start.
+      # Render's DATABASE_URL is postgres:// but SQLAlchemy requires postgresql+asyncpg://
+      # We handle this via an environment variable override below.
+      uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: footlysis-db
+          property: connectionString
+      # Let the app know it's in production
+      - key: ENVIRONMENT
+        value: production
+      # The admin password to trigger scraping routes safely from your browser
+      - key: ADMIN_API_KEY
+        generateValue: true
+      # You can add FRONTEND_URL here later if needed for CORS
+
+  # 3. React Frontend
+  - type: web
+    name: footlysis-frontend
+    env: static
+    plan: free
+    buildCommand: |
+      cd frontend
+      npm install
+      npm run build
+    staticPublishPath: frontend/dist
+    envVars:
+      # Connect the frontend automatically to the backend URL
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: footlysis-backend
+          property: host
+      # Pass the same admin API key to the frontend so the Data Manager authenticates automatically
+      - key: VITE_ADMIN_API_KEY
+        fromService:
+          type: web
+          name: footlysis-backend
+          property: ADMIN_API_KEY

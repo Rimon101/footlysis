@@ -6,7 +6,7 @@ databases:
 envVarGroups:
   - name: footlysis-secrets
     envVars:
-      - key: ADMIN_API_KEY
+      - key: VITE_ADMIN_API_KEY
         generateValue: true
 
 services:
@@ -36,9 +36,7 @@ services:
       - key: ENVIRONMENT
         value: production
       # You can add FRONTEND_URL here later if needed for CORS
-      - key: ADMIN_API_KEY
-        fromGroup: footlysis-secrets
-        property: ADMIN_API_KEY
+      - fromGroup: footlysis-secrets
 
   # 3. React Frontend
   - type: web
@@ -58,6 +56,4 @@ services:
           name: footlysis-backend
           property: host
       # Pass the same admin API key to the frontend so the Data Manager authenticates automatically
-      - key: VITE_ADMIN_API_KEY
-        fromGroup: footlysis-secrets
-        property: ADMIN_API_KEY
+      - fromGroup: footlysis-secrets

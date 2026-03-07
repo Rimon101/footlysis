@@ -63,8 +63,10 @@ export const getPrediction = id => api.get(`/predictions/${id}`).then(r => r.dat
 export const getPredictionForMatch = matchId =>
   api.get(`/predictions/match/${matchId}`).then(r => r.data)
 export const listPredictions = params => api.get('/predictions/', { params }).then(r => r.data)
-export const getAIAnalysis = matchId =>
-  api.post(`/predictions/ai-analysis/${matchId}`, null, { timeout: 60000 }).then(r => r.data)
+export const getAIAnalysis = (matchId, model) =>
+  api.post(`/predictions/ai-analysis/${matchId}`, null, { params: model ? { model } : {}, timeout: 60000 }).then(r => r.data)
+export const getAIConsensus = matchId =>
+  api.post(`/predictions/ai-consensus/${matchId}`, null, { timeout: 120000 }).then(r => r.data)
 
 // ─── Betting ─────────────────────────────────────────────────────────────────
 export const calculateKelly = payload => api.post('/betting/kelly', payload).then(r => r.data)

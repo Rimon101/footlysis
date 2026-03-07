@@ -9,6 +9,8 @@ _connect_args = {"check_same_thread": False} if _is_sqlite else {}
 _engine_kwargs = {"echo": False, "connect_args": _connect_args}
 if not _is_sqlite:
     _engine_kwargs["pool_pre_ping"] = True
+    _engine_kwargs["pool_size"] = 15
+    _engine_kwargs["max_overflow"] = 25
 
 engine = create_async_engine(db_url, **_engine_kwargs)
 AsyncSessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)

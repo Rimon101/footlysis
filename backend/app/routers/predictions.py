@@ -114,10 +114,10 @@ async def generate_prediction(
     away_recent = await get_recent(away_alias_ids)
 
     # Fetch team Elo ratings
-    home_result = await db.execute(select(Team).where(Team.id == match.home_team_id))
-    home_team = home_result.scalar_one_or_none()
-    away_result = await db.execute(select(Team).where(Team.id == match.away_team_id))
-    away_team = away_result.scalar_one_or_none()
+    teams_result = await db.execute(select(Team).where(Team.id.in_([match.home_team_id, match.away_team_id])))
+    teams_fetched = teams_result.scalars().all()
+    home_team = next((t for t in teams_fetched if t.id == match.home_team_id), None)
+    away_team = next((t for t in teams_fetched if t.id == match.away_team_id), None)
 
     home_elo = home_team.elo_rating if home_team else 1500.0
     away_elo = away_team.elo_rating if away_team else 1500.0
@@ -314,12 +314,13 @@ async def list_predictions(
 
 
 @router.post("/ai-analysis/{match_id}")
-async def ai_match_analysis(match_id: int, db: AsyncSession = Depends(get_db)):
+async def ai_match_analysis(match_id: int, model: str = "llama-4-maverick", db: AsyncSession = Depends(get_db)):
     """
     Generate AI-powered analysis combining prediction engine + analysis data.
     Requires a prediction to already exist for this match.
+    Accepts optional `model` query param: llama-4-maverick | deepseek-r1 | gpt-oss-120b
     """
-    from app.services.ai_analysis import generate_ai_analysis
+    from app.services.ai_analysis import generate_ai_analysis, GROQ_MODELS
     from app.routers.matches import pre_match_analysis
 
     # 1. Get existing prediction
@@ -348,8 +349,10 @@ async def ai_match_analysis(match_id: int, db: AsyncSession = Depends(get_db)):
     if not match:
         raise HTTPException(status_code=404, detail="Match not found")
 
-    home_t = (await db.execute(select(Team).where(Team.id == match.home_team_id))).scalar_one_or_none()
-    away_t = (await db.execute(select(Team).where(Team.id == match.away_team_id))).scalar_one_or_none()
+    teams_res = await db.execute(select(Team).where(Team.id.in_([match.home_team_id, match.away_team_id])))
+    teams_fetched_analysis = teams_res.scalars().all()
+    home_t = next((t for t in teams_fetched_analysis if t.id == match.home_team_id), None)
+    away_t = next((t for t in teams_fetched_analysis if t.id == match.away_team_id), None)
 
     match_info = {
         "home_team": home_t.name if home_t else "Home",
@@ -370,5 +373,70 @@ async def ai_match_analysis(match_id: int, db: AsyncSession = Depends(get_db)):
         pass
 
     # 4. Generate AI analysis
-    result = await generate_ai_analysis(pred_data, analysis_data, match_info)
+    result = await generate_ai_analysis(pred_data, analysis_data, match_info, model=model)
+    result["model_used"] = model
+    result["model_label"] = GROQ_MODELS.get(model, {}).get("label", model)
+    return result
+
+
+@router.post("/ai-consensus/{match_id}")
+async def ai_consensus_analysis(match_id: int, db: AsyncSession = Depends(get_db)):
+    """
+    Generate consensus AI analysis by running all 3 Groq models in parallel,
+    then synthesising their outputs into a single definitive prediction.
+    """
+    from app.services.ai_analysis import generate_consensus_analysis
+    from app.routers.matches import pre_match_analysis
+
+    # 1. Get existing prediction
+    pred_result = await db.execute(
+        select(Prediction).where(Prediction.match_id == match_id)
+    )
+    pred = pred_result.scalar_one_or_none()
+    if not pred:
+        raise HTTPException(
+            status_code=400,
+            detail="Generate a prediction first before requesting AI consensus"
+        )
+
+    pred_data = {c.name: getattr(pred, c.name) for c in pred.__table__.columns}
+    if pred_data.get("score_matrix"):
+        try:
+            pred_data["score_matrix"] = json.loads(pred_data["score_matrix"])
+        except Exception:
+            pass
+
+    # 2. Get match info
+    match_result = await db.execute(
+        select(Match).where(Match.id == match_id)
+    )
+    match = match_result.scalar_one_or_none()
+    if not match:
+        raise HTTPException(status_code=404, detail="Match not found")
+
+    teams_res = await db.execute(select(Team).where(Team.id.in_([match.home_team_id, match.away_team_id])))
+    teams_list = teams_res.scalars().all()
+    home_t = next((t for t in teams_list if t.id == match.home_team_id), None)
+    away_t = next((t for t in teams_list if t.id == match.away_team_id), None)
+
+    match_info = {
+        "home_team": home_t.name if home_t else "Home",
+        "away_team": away_t.name if away_t else "Away",
+        "league": "",
+    }
+    if match.league_id:
+        from app.models.models import League
+        league_row = (await db.execute(select(League).where(League.id == match.league_id))).scalar_one_or_none()
+        if league_row:
+            match_info["league"] = league_row.name
+
+    # 3. Try to get pre-match analysis (best effort)
+    analysis_data = None
+    try:
+        analysis_data = await pre_match_analysis(match_id, db)
+    except Exception:
+        pass
+
+    # 4. Generate consensus AI analysis
+    result = await generate_consensus_analysis(pred_data, analysis_data, match_info)
     return result

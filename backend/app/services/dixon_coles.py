@@ -13,6 +13,7 @@ from typing import Dict, List, Tuple, Optional
 import numpy as np
 from scipy.optimize import minimize
 from scipy.stats import poisson
+from scipy.special import gammaln
 
 logger = logging.getLogger(__name__)
 
@@ -148,6 +149,20 @@ def fit_dixon_coles(results: List[Dict], xi: float = 0.0018) -> Optional[Dict]:
     t0 = time.perf_counter()
 
     weights = [time_decay_weight(r.get("days_ago", 0), xi) for r in results]
+    w_arr = np.array(weights)
+    
+    i_idx = np.array([team_idx[r["home_team"]] for r in results])
+    j_idx = np.array([team_idx[r["away_team"]] for r in results])
+    hg = np.array([r["home_goals"] for r in results], dtype=int)
+    ag = np.array([r["away_goals"] for r in results], dtype=int)
+    
+    log_k_fact_h = gammaln(hg + 1)
+    log_k_fact_a = gammaln(ag + 1)
+    
+    mask_00 = (hg == 0) & (ag == 0)
+    mask_10 = (hg == 1) & (ag == 0)
+    mask_01 = (hg == 0) & (ag == 1)
+    mask_11 = (hg == 1) & (ag == 1)
 
     def neg_log_likelihood(params):
         attack = params[:n]
@@ -155,15 +170,22 @@ def fit_dixon_coles(results: List[Dict], xi: float = 0.0018) -> Optional[Dict]:
         home_adv = params[2 * n]
         rho = params[2 * n + 1]
 
-        ll = 0.0
-        for r, w in zip(results, weights):
-            i = team_idx[r["home_team"]]
-            j = team_idx[r["away_team"]]
-            lam_h = np.exp(home_adv + attack[i] - defence[j])
-            lam_a = np.exp(attack[j] - defence[i])
-            p = dc_probability(r["home_goals"], r["away_goals"], lam_h, lam_a, rho)
-            ll -= w * math.log(max(p, 1e-10))
-        return ll
+        lam_h = np.exp(home_adv + attack[i_idx] - defence[j_idx])
+        lam_a = np.exp(attack[j_idx] - defence[i_idx])
+
+        t = np.ones_like(hg, dtype=float)
+        t[mask_00] = 1.0 - lam_h[mask_00] * lam_a[mask_00] * rho
+        t[mask_10] = 1.0 + lam_a[mask_10] * rho
+        t[mask_01] = 1.0 + lam_h[mask_01] * rho
+        t[mask_11] = 1.0 - rho
+        
+        log_base_h = hg * np.log(lam_h) - lam_h - log_k_fact_h
+        log_base_a = ag * np.log(lam_a) - lam_a - log_k_fact_a
+        
+        p_total = np.maximum(t, 1e-10)
+        log_p = log_base_h + log_base_a + np.log(p_total)
+        
+        return -np.sum(w_arr * log_p)
 
     x0 = np.zeros(2 * n + 2)
     x0[2 * n] = 0.25     # home advantage
@@ -179,8 +201,9 @@ def fit_dixon_coles(results: List[Dict], xi: float = 0.0018) -> Optional[Dict]:
             method="SLSQP",
             bounds=bounds,
             constraints=constraints,
-            options={"maxiter": 30, "ftol": 1e-3},
+            options={"maxiter": 100, "ftol": 1e-5},
         )
+
         elapsed = time.perf_counter() - t0
         logger.info(f"Dixon-Coles optimization finished in {elapsed:.2f}s (success={result.success}, nit={result.nit})")
         if not result.success:

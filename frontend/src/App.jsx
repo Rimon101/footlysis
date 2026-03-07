@@ -9,7 +9,7 @@ import MatchDetail from './pages/MatchDetail'
 import Teams from './pages/Teams'
 import TeamDetail from './pages/TeamDetail'
 import Predictions from './pages/Predictions'
-import Betting from './pages/Betting'
+
 import Standings from './pages/Standings'
 import Scrapes from './pages/Scrapes'
 import DataManager from './pages/DataManager'
@@ -36,20 +36,20 @@ export default function App() {
           }}
         />
         <Suspense fallback={<div className="flex items-center justify-center min-h-screen text-slate-400">Loading...</div>}>
-        <Routes>
-          <Route element={<Layout />}>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/matches" element={<Matches />} />
-            <Route path="/matches/:id" element={<MatchDetail />} />
-            <Route path="/teams" element={<Teams />} />
-            <Route path="/teams/:id" element={<TeamDetail />} />
-            <Route path="/predictions" element={<Predictions />} />
-            <Route path="/betting" element={<Betting />} />
-            <Route path="/standings" element={<Standings />} />
-            <Route path="/scrapes" element={<Scrapes />} />
-            <Route path="/data" element={<DataManager />} />
-          </Route>
-        </Routes>
+          <Routes>
+            <Route element={<Layout />}>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/matches" element={<Matches />} />
+              <Route path="/matches/:id" element={<MatchDetail />} />
+              <Route path="/teams" element={<Teams />} />
+              <Route path="/teams/:id" element={<TeamDetail />} />
+              <Route path="/predictions" element={<Predictions />} />
+
+              <Route path="/standings" element={<Standings />} />
+              <Route path="/scrapes" element={<Scrapes />} />
+              <Route path="/data" element={<DataManager />} />
+            </Route>
+          </Routes>
         </Suspense>
       </BrowserRouter>
     </QueryClientProvider>

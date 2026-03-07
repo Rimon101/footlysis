@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { keepPreviousData } from '@tanstack/react-query'
 import { Link, useSearchParams } from 'react-router-dom'
@@ -58,14 +58,16 @@ export default function Matches() {
   const error = tab === 'upcoming' ? upError : resError
   const refetch = tab === 'upcoming' ? refetchUp : refetchRes
 
-  const filtered = (matches || []).filter(m => {
-    if (!search) return true
-    const q = search.toLowerCase()
-    return (
-      (m.home_team?.name || '').toLowerCase().includes(q) ||
-      (m.away_team?.name || '').toLowerCase().includes(q)
-    )
-  })
+  const filtered = useMemo(() => {
+    return (matches || []).filter(m => {
+      if (!search) return true
+      const q = search.toLowerCase()
+      return (
+        (m.home_team?.name || '').toLowerCase().includes(q) ||
+        (m.away_team?.name || '').toLowerCase().includes(q)
+      )
+    })
+  }, [matches, search])
 
   const handleTabChange = t => { setTab(t); setPage(0); setSearch('') }
 
@@ -92,9 +94,8 @@ export default function Matches() {
             <button
               key={t.key}
               onClick={() => handleTabChange(t.key)}
-              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                tab === t.key ? 'bg-brand-500 text-white' : 'text-slate-400 hover:text-white'
-              }`}
+              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${tab === t.key ? 'bg-brand-500 text-white' : 'text-slate-400 hover:text-white'
+                }`}
             >
               {t.label}
               {t.key === 'results' && results?.length > 0 && (

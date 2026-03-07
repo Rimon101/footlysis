@@ -6,21 +6,20 @@ import {
 } from 'lucide-react'
 
 const nav = [
-  { to: '/',           label: 'Dashboard',    icon: LayoutDashboard },
-  { to: '/matches',    label: 'Matches',       icon: Calendar },
-  { to: '/predictions',label: 'Predictions',   icon: TrendingUp },
-  { to: '/scrapes',    label: 'Scrapes',       icon: History },
-  { to: '/teams',      label: 'Teams',         icon: Users },
-  { to: '/standings',  label: 'Standings',     icon: Table2 },
-  { to: '/betting',    label: 'Betting Tools', icon: BarChart2 },
-  { to: '/data',       label: 'Data Manager',  icon: Database },
+  { to: '/', label: 'Dashboard', icon: LayoutDashboard },
+  { to: '/matches', label: 'Matches', icon: Calendar },
+  { to: '/predictions', label: 'Predictions', icon: TrendingUp },
+  { to: '/scrapes', label: 'Scrapes', icon: History },
+  { to: '/teams', label: 'Teams', icon: Users },
+  { to: '/standings', label: 'Standings', icon: Table2 },
+
+  { to: '/data', label: 'Data Manager', icon: Database },
 ]
 
 const linkClass = ({ isActive }) =>
-  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 ${
-    isActive
-      ? 'bg-brand-500/20 text-brand-400 border border-brand-500/30'
-      : 'text-slate-400 hover:text-white hover:bg-white/5'
+  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 ${isActive
+    ? 'bg-brand-500/20 text-brand-400 border border-brand-500/30'
+    : 'text-slate-400 hover:text-white hover:bg-white/5'
   }`
 
 export default function Layout() {

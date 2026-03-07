@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useState, useMemo, memo } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
-import { getMatch, generatePrediction, getPredictionForMatch, getH2H, scrapeMatch, getPreMatchAnalysis, enrichMatch, getAIAnalysis } from '../services/api'
+import { getMatch, generatePrediction, getPredictionForMatch, getH2H, scrapeMatch, getPreMatchAnalysis, enrichMatch, getAIAnalysis, getAIConsensus } from '../services/api'
 import { addAnalysisMatch, getAnalysisMatchIds, getAIAnalysisCache, setAIAnalysisCache, getAIChartCache, setAIChartCache } from '../services/storage'
 import { LoadingState, ErrorState } from '../components/States'
 import { PageHeader, Badge, StatCard, SectionTitle } from '../components/UI'
@@ -21,22 +21,22 @@ function utcDate(dateStr) {
 /*  REUSABLE SUB-COMPONENTS                                                   */
 /* ═══════════════════════════════════════════════════════════════════════════ */
 
-function FormBadges({ form, size = 'sm' }) {
-  if (!form) return <span className="text-slate-500 text-xs">—</span>
-  const sz = size === 'lg' ? 'w-7 h-7 text-xs' : 'w-5 h-5 text-[10px]'
+const FormBadges = memo(function FormBadges({ form, size = 'sm' }) {
+  if (!form) return <span className="text-slate-500 text-sm">—</span>
+  const sz = size === 'lg' ? 'w-8 h-8 text-sm sm:w-7 sm:h-7 sm:text-xs' : 'w-6 h-6 text-xs sm:w-5 sm:h-5 sm:text-[11px]'
   return (
-    <div className="flex gap-0.5">
+    <div className="flex gap-1 flex-wrap">
       {form.split('').map((r, i) => (
         <span key={i} className={`${sz} flex items-center justify-center rounded font-bold ${r === 'W' ? 'bg-emerald-500/20 text-emerald-400' :
-            r === 'D' ? 'bg-amber-500/20 text-amber-400' :
-              'bg-red-500/20 text-red-400'
+          r === 'D' ? 'bg-amber-500/20 text-amber-400' :
+            'bg-red-500/20 text-red-400'
           }`}>{r}</span>
       ))}
     </div>
   )
-}
+})
 
-function ComparisonRow({ label, homeVal, awayVal, higherIsBetter = true, suffix = '' }) {
+const ComparisonRow = memo(function ComparisonRow({ label, homeVal, awayVal, higherIsBetter = true, suffix = '' }) {
   const hv = typeof homeVal === 'number' ? homeVal : null
   const av = typeof awayVal === 'number' ? awayVal : null
   const hBetter = hv != null && av != null && (higherIsBetter ? hv > av : hv < av)
@@ -52,9 +52,9 @@ function ComparisonRow({ label, homeVal, awayVal, higherIsBetter = true, suffix 
       </div>
     </div>
   )
-}
+})
 
-function MiniStat({ label, value, sub }) {
+const MiniStat = memo(function MiniStat({ label, value, sub }) {
   return (
     <div className="bg-white/5 rounded-lg p-2.5 text-center">
       <div className="text-lg font-bold text-white font-mono">{value ?? '—'}</div>
@@ -62,9 +62,9 @@ function MiniStat({ label, value, sub }) {
       {sub && <div className="text-[10px] text-slate-500 mt-0.5">{sub}</div>}
     </div>
   )
-}
+})
 
-function RecordBar({ record, teamName }) {
+const RecordBar = memo(function RecordBar({ record, teamName }) {
   if (!record) return null
   const total = record.played || 1
   const wPct = (record.wins / total * 100)
@@ -87,22 +87,22 @@ function RecordBar({ record, teamName }) {
       </div>
     </div>
   )
-}
+})
 
-function Tab({ active, onClick, icon, label }) {
+const Tab = memo(function Tab({ active, onClick, icon, label }) {
   return (
     <button
       onClick={onClick}
       className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg transition-all whitespace-nowrap ${active
-          ? 'bg-brand-500/20 text-brand-400 border border-brand-500/30'
-          : 'text-slate-400 hover:text-white hover:bg-white/5'
+        ? 'bg-brand-500/20 text-brand-400 border border-brand-500/30'
+        : 'text-slate-400 hover:text-white hover:bg-white/5'
         }`}
     >
       {icon}
       {label}
     </button>
   )
-}
+})
 
 /* ═══════════════════════════════════════════════════════════════════════════ */
 /*  MATCH HISTORY TABLE (FBRef-style per-match rows)                         */
@@ -168,8 +168,8 @@ function MatchHistoryTable({ history, teamName, showAll }) {
                   </td>
                   <td className="py-1.5 px-1 text-center">
                     <span className={`w-5 h-5 inline-flex items-center justify-center rounded text-[10px] font-bold ${m.result === 'W' ? 'bg-emerald-500/20 text-emerald-400' :
-                        m.result === 'D' ? 'bg-amber-500/20 text-amber-400' :
-                          'bg-red-500/20 text-red-400'
+                      m.result === 'D' ? 'bg-amber-500/20 text-amber-400' :
+                        'bg-red-500/20 text-red-400'
                       }`}>{m.result}</span>
                   </td>
                   <td className="py-1.5 px-1 text-white truncate max-w-[120px]">{opponent}</td>
@@ -202,23 +202,23 @@ function OverviewPanel({ analysis, home, away }) {
   const a = analysis
   return (
     <div className="space-y-5">
-      <div className="glass-card p-5">
+      <div className="glass-card p-4 sm:p-5">
         <SectionTitle>Current Form</SectionTitle>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <div className="text-sm font-medium text-white">{home}</div>
-            <div className="space-y-1">
-              <div className="flex items-center gap-2"><span className="text-[10px] text-slate-400 w-12">Last 5</span><FormBadges form={a.home_form} size="lg" /></div>
-              <div className="flex items-center gap-2"><span className="text-[10px] text-slate-400 w-12">Last 10</span><FormBadges form={a.home_form_10} /></div>
-              <div className="flex items-center gap-2"><span className="text-[10px] text-slate-400 w-12">Last 20</span><FormBadges form={a.home_form_20} /></div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-3">
+            <div className="text-base font-semibold text-white">{home}</div>
+            <div className="space-y-2">
+              <div className="flex items-center gap-3"><span className="text-xs sm:text-[11px] text-slate-400 w-14 font-medium">Last 5</span><FormBadges form={a.home_form} size="lg" /></div>
+              <div className="flex items-center gap-3"><span className="text-xs sm:text-[11px] text-slate-400 w-14 font-medium">Last 10</span><FormBadges form={a.home_form_10} /></div>
+              <div className="flex items-center gap-3"><span className="text-xs sm:text-[11px] text-slate-400 w-14 font-medium">Last 20</span><FormBadges form={a.home_form_20} /></div>
             </div>
           </div>
-          <div className="space-y-2">
-            <div className="text-sm font-medium text-white">{away}</div>
-            <div className="space-y-1">
-              <div className="flex items-center gap-2"><span className="text-[10px] text-slate-400 w-12">Last 5</span><FormBadges form={a.away_form} size="lg" /></div>
-              <div className="flex items-center gap-2"><span className="text-[10px] text-slate-400 w-12">Last 10</span><FormBadges form={a.away_form_10} /></div>
-              <div className="flex items-center gap-2"><span className="text-[10px] text-slate-400 w-12">Last 20</span><FormBadges form={a.away_form_20} /></div>
+          <div className="space-y-3">
+            <div className="text-base font-semibold text-white">{away}</div>
+            <div className="space-y-2">
+              <div className="flex items-center gap-3"><span className="text-xs sm:text-[11px] text-slate-400 w-14 font-medium">Last 5</span><FormBadges form={a.away_form} size="lg" /></div>
+              <div className="flex items-center gap-3"><span className="text-xs sm:text-[11px] text-slate-400 w-14 font-medium">Last 10</span><FormBadges form={a.away_form_10} /></div>
+              <div className="flex items-center gap-3"><span className="text-xs sm:text-[11px] text-slate-400 w-14 font-medium">Last 20</span><FormBadges form={a.away_form_20} /></div>
             </div>
           </div>
         </div>
@@ -283,16 +283,16 @@ function OverviewPanel({ analysis, home, away }) {
       )}
 
       {(a.home_streaks || a.away_streaks) && (
-        <div className="glass-card p-5">
+        <div className="glass-card p-4 sm:p-5">
           <SectionTitle>Current Streaks</SectionTitle>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             {[
               { name: home, s: a.home_streaks },
               { name: away, s: a.away_streaks },
             ].map(({ name, s }) => s && (
-              <div key={name} className="space-y-2">
-                <div className="text-xs font-medium text-white">{name}</div>
-                <div className="grid grid-cols-2 gap-1.5">
+              <div key={name} className="space-y-3">
+                <div className="text-sm sm:text-base font-semibold text-white">{name}</div>
+                <div className="grid grid-cols-2 gap-2">
                   {[
                     { l: 'Win Streak', v: s.current_win_streak, c: 'text-emerald-400' },
                     { l: 'Unbeaten', v: s.current_unbeaten, c: 'text-emerald-400' },
@@ -303,9 +303,9 @@ function OverviewPanel({ analysis, home, away }) {
                     { l: 'Best Win Run', v: s.best_win_streak, c: 'text-slate-300' },
                     { l: 'Best Unbeaten', v: s.best_unbeaten, c: 'text-slate-300' },
                   ].map(({ l, v, c }) => (
-                    <div key={l} className="flex justify-between text-[11px] bg-white/5 rounded p-1.5 px-2">
+                    <div key={l} className="flex justify-between text-xs sm:text-sm bg-white/5 rounded-lg p-2 px-3">
                       <span className="text-slate-400">{l}</span>
-                      <span className={`font-mono font-bold ${c}`}>{v}</span>
+                      <span className={`font-mono font-bold text-base ${c}`}>{v}</span>
                     </div>
                   ))}
                 </div>
@@ -1142,6 +1142,8 @@ export default function MatchDetail() {
   const [aiAnalysis, setAiAnalysis] = useState(() => getAIAnalysisCache(id))
   const [aiChartData, setAiChartData] = useState(() => getAIChartCache(id))
   const [aiLoading, setAiLoading] = useState(false)
+  const [selectedAIModel, setSelectedAIModel] = useState('llama-4-maverick')
+  const [aiModelLabel, setAiModelLabel] = useState(null)
 
   const handleAIAnalysis = async () => {
     if (!prediction) {
@@ -1150,15 +1152,16 @@ export default function MatchDetail() {
     }
     setAiLoading(true)
     try {
-      const result = await getAIAnalysis(id)
+      const result = await getAIAnalysis(id, selectedAIModel)
       if (result.status === 'success') {
         setAiAnalysis(result.ai_analysis)
         setAIAnalysisCache(id, result.ai_analysis)
+        setAiModelLabel(result.model_label || selectedAIModel)
         if (result.chart_data) {
           setAiChartData(result.chart_data)
           setAIChartCache(id, result.chart_data)
         }
-        toast.success('AI analysis generated!')
+        toast.success(`AI analysis generated with ${result.model_label || selectedAIModel}!`)
       } else {
         toast.error(result.message || 'AI analysis failed')
       }
@@ -1167,6 +1170,36 @@ export default function MatchDetail() {
     }
     setAiLoading(false)
   }
+
+  const handleConsensusAI = async () => {
+    if (!prediction) {
+      toast.error('Generate a prediction first')
+      return
+    }
+    setAiLoading(true)
+    toast('Running 3 AI models in parallel… this may take a minute', { icon: '🧠' })
+    try {
+      const result = await getAIConsensus(id)
+      if (result.status === 'success') {
+        setAiAnalysis(result.ai_analysis)
+        setAIAnalysisCache(id, result.ai_analysis)
+        setAiModelLabel('Consensus (3 Models)')
+        if (result.chart_data) {
+          setAiChartData(result.chart_data)
+          setAIChartCache(id, result.chart_data)
+        }
+        const modelsUsed = (result.individual_results || []).filter(r => r.status.includes('✅')).length
+        toast.success(`Consensus analysis ready! ${modelsUsed} models contributed.`)
+      } else {
+        toast.error(result.message || 'Consensus analysis failed')
+      }
+    } catch (err) {
+      toast.error(err?.response?.data?.detail || 'Failed to generate consensus analysis')
+    }
+    setAiLoading(false)
+  }
+
+  const { analysis: aiSections, prediction: aiPredSections } = useMemo(() => parseAISections(aiAnalysis), [aiAnalysis])
 
   const handleScrapeClick = async () => {
     if (isFinished) {
@@ -1204,9 +1237,9 @@ export default function MatchDetail() {
         subtitle={subtitleParts.filter(Boolean).join(' · ')}
         action={
           !isFinished && (
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="grid grid-cols-2 sm:flex sm:flex-wrap sm:items-center gap-2 w-full sm:w-auto">
               <button
-                className="btn-secondary flex items-center gap-2 text-sm"
+                className="btn-secondary flex items-center justify-center gap-2 text-sm"
                 onClick={handleScrapeClick}
                 disabled={isScraping || aLoading || enriching}
               >
@@ -1215,7 +1248,7 @@ export default function MatchDetail() {
                 <span className="sm:hidden">Analysis</span>
               </button>
               <button
-                className="btn-primary flex items-center gap-2 text-sm"
+                className="btn-primary flex items-center justify-center gap-2 text-sm"
                 onClick={() => predict()}
                 disabled={isPending}
               >
@@ -1223,15 +1256,33 @@ export default function MatchDetail() {
                 <span className="hidden sm:inline">{isPending ? 'Generating… may take 30s' : prediction ? 'Re-generate' : 'Generate Prediction'}</span>
                 <span className="sm:hidden">{isPending ? 'Working…' : prediction ? 'Regen' : 'Predict'}</span>
               </button>
+              <select
+                value={selectedAIModel}
+                onChange={e => setSelectedAIModel(e.target.value)}
+                className="bg-white/10 text-white text-xs border border-white/20 rounded-lg px-2 py-2 focus:outline-none focus:border-brand-500/50 cursor-pointer col-span-2 sm:col-span-1"
+                disabled={aiLoading}
+              >
+                <option value="llama-4-maverick">Llama 4 Maverick</option>
+                <option value="gpt-oss-120b">GPT OSS 120B</option>
+              </select>
               <button
-                className="btn-secondary flex items-center gap-2 text-sm"
+                className="btn-secondary flex items-center justify-center gap-2 text-sm"
                 onClick={handleAIAnalysis}
                 disabled={aiLoading || !prediction}
                 title={!prediction ? 'Generate a prediction first' : ''}
               >
                 {aiLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Brain className="w-4 h-4" />}
-                <span className="hidden sm:inline">AI Analysis</span>
-                <span className="sm:hidden">AI</span>
+                <span>AI</span>
+              </button>
+              <button
+                className="bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-500 hover:to-pink-400 text-white flex items-center justify-center gap-2 text-sm px-3 py-2 rounded-lg font-medium transition-all disabled:opacity-50"
+                onClick={handleConsensusAI}
+                disabled={aiLoading || !prediction}
+                title={!prediction ? 'Generate a prediction first' : 'AI models discuss and synthesize a consensus prediction'}
+              >
+                {aiLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                <span className="hidden sm:inline">Consensus</span>
+                <span className="sm:hidden">⚡</span>
               </button>
             </div>
           )
@@ -1423,25 +1474,22 @@ export default function MatchDetail() {
       )}
 
       {/* AI Analysis & AI Prediction sections */}
-      {aiAnalysis && (() => {
-        const { analysis: aiSections, prediction: aiPredSections } = parseAISections(aiAnalysis)
-        return (
-          <>
-            <AIAnalysisCards sections={aiSections} />
-            <AIPredictionCards sections={aiPredSections} />
-            <div className="flex justify-end">
-              <button
-                className="text-xs text-slate-400 hover:text-brand-400 flex items-center gap-1"
-                onClick={handleAIAnalysis}
-                disabled={aiLoading}
-              >
-                <RefreshCw className={`w-3 h-3 ${aiLoading ? 'animate-spin' : ''}`} />
-                {aiLoading ? 'Regenerating...' : 'Regenerate AI Analysis'}
-              </button>
-            </div>
-          </>
-        )
-      })()}
+      {aiAnalysis && (
+        <>
+          <AIAnalysisCards sections={aiSections} />
+          <AIPredictionCards sections={aiPredSections} />
+          <div className="flex justify-end">
+            <button
+              className="text-xs text-slate-400 hover:text-brand-400 flex items-center gap-1"
+              onClick={handleAIAnalysis}
+              disabled={aiLoading}
+            >
+              <RefreshCw className={`w-3 h-3 ${aiLoading ? 'animate-spin' : ''}`} />
+              {aiLoading ? 'Regenerating...' : 'Regenerate AI Analysis'}
+            </button>
+          </div>
+        </>
+      )}
 
       {/* H2H for finished matches */}
       {isFinished && h2h && h2h.length > 0 && (

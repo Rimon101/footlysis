@@ -1,8 +1,12 @@
 """
 Prediction engine – orchestrates Poisson, Dixon-Coles, Elo, and Kelly.
 """
+import logging
+import time
 from typing import Dict, Optional, List
 from datetime import datetime, timezone
+
+logger = logging.getLogger(__name__)
 
 from app.services.dixon_coles import (
     dc_match_probabilities,
@@ -44,6 +48,9 @@ def predict_match(
     - confidence score
     """
 
+    t0 = time.perf_counter()
+    logger.info(f"predict_match: {home_team_name} vs {away_team_name} (model={model})")
+
     # ── 1. Team Form ──────────────────────────────────────────────────────────
     home_form = calculate_team_form(home_recent_matches, team_id=home_team_id or -1)
     away_form = calculate_team_form(away_recent_matches, team_id=away_team_id or -1)
@@ -81,6 +88,7 @@ def predict_match(
     fitted_probs = None
 
     if model == "dixon_coles" and historical_results and len(historical_results) >= 20:
+        logger.info(f"Fitting Dixon-Coles on {len(historical_results)} historical matches...")
         fit = fit_dixon_coles(historical_results)
         if fit:
             fitted_probs = predict_from_fitted(fit, home_team_name, away_team_name)
@@ -137,6 +145,9 @@ def predict_match(
     max_prob = max(probs["prob_home_win"], probs["prob_draw"], probs["prob_away_win"])
     # Scale confidence: 33% = 0, 90% = 100%
     confidence = round(min(100, max(0, (max_prob - 0.33) / 0.57 * 100)), 1)
+
+    elapsed = time.perf_counter() - t0
+    logger.info(f"predict_match completed in {elapsed:.2f}s")
 
     return {
         **probs,

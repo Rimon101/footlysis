@@ -58,7 +58,7 @@ export const updatePlayerAvailability = (id, data) =>
   api.patch(`/players/${id}/availability`, null, { params: data }).then(r => r.data)
 
 // ─── Predictions ─────────────────────────────────────────────────────────────
-export const generatePrediction = payload => api.post('/predictions/generate', payload, { timeout: 120000 }).then(r => r.data)
+export const generatePrediction = payload => api.post('/predictions/generate', payload, { timeout: 180000 }).then(r => r.data)
 export const getPrediction = id => api.get(`/predictions/${id}`).then(r => r.data)
 export const getPredictionForMatch = matchId =>
   api.get(`/predictions/match/${matchId}`).then(r => r.data)

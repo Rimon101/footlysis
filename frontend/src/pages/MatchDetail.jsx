@@ -27,11 +27,10 @@ function FormBadges({ form, size = 'sm' }) {
   return (
     <div className="flex gap-0.5">
       {form.split('').map((r, i) => (
-        <span key={i} className={`${sz} flex items-center justify-center rounded font-bold ${
-          r === 'W' ? 'bg-emerald-500/20 text-emerald-400' :
-          r === 'D' ? 'bg-amber-500/20 text-amber-400' :
-                      'bg-red-500/20 text-red-400'
-        }`}>{r}</span>
+        <span key={i} className={`${sz} flex items-center justify-center rounded font-bold ${r === 'W' ? 'bg-emerald-500/20 text-emerald-400' :
+            r === 'D' ? 'bg-amber-500/20 text-amber-400' :
+              'bg-red-500/20 text-red-400'
+          }`}>{r}</span>
       ))}
     </div>
   )
@@ -94,11 +93,10 @@ function Tab({ active, onClick, icon, label }) {
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg transition-all whitespace-nowrap ${
-        active
+      className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg transition-all whitespace-nowrap ${active
           ? 'bg-brand-500/20 text-brand-400 border border-brand-500/30'
           : 'text-slate-400 hover:text-white hover:bg-white/5'
-      }`}
+        }`}
     >
       {icon}
       {label}
@@ -169,11 +167,10 @@ function MatchHistoryTable({ history, teamName, showAll }) {
                     <span className={`text-[10px] font-bold ${m.venue === 'H' ? 'text-emerald-400' : 'text-blue-400'}`}>{m.venue}</span>
                   </td>
                   <td className="py-1.5 px-1 text-center">
-                    <span className={`w-5 h-5 inline-flex items-center justify-center rounded text-[10px] font-bold ${
-                      m.result === 'W' ? 'bg-emerald-500/20 text-emerald-400' :
-                      m.result === 'D' ? 'bg-amber-500/20 text-amber-400' :
-                                          'bg-red-500/20 text-red-400'
-                    }`}>{m.result}</span>
+                    <span className={`w-5 h-5 inline-flex items-center justify-center rounded text-[10px] font-bold ${m.result === 'W' ? 'bg-emerald-500/20 text-emerald-400' :
+                        m.result === 'D' ? 'bg-amber-500/20 text-amber-400' :
+                          'bg-red-500/20 text-red-400'
+                      }`}>{m.result}</span>
                   </td>
                   <td className="py-1.5 px-1 text-white truncate max-w-[120px]">{opponent}</td>
                   <td className="py-1.5 px-1 text-center font-mono text-white font-medium">{m.goals_for}-{m.goals_against}</td>
@@ -748,7 +745,7 @@ function parseAISections(markdown) {
 
   for (const line of lines) {
     const m = line.match(/^#{1,3}\s+(?:\d+\.\s*)?\*{0,2}(.+?)\*{0,2}\s*$/) ||
-              line.match(/^\*\*(?:\d+\.\s*)?(.+?)\*\*\s*$/)
+      line.match(/^\*\*(?:\d+\.\s*)?(.+?)\*\*\s*$/)
     if (m) {
       if (current) sections.push(current)
       current = { title: m[1].replace(/\*\*/g, '').trim(), lines: [] }
@@ -763,7 +760,7 @@ function parseAISections(markdown) {
   const prediction = []
   for (const s of sections) {
     const t = s.title.toLowerCase()
-    ;(predKw.some(k => t.includes(k)) ? prediction : analysis).push(s)
+      ; (predKw.some(k => t.includes(k)) ? prediction : analysis).push(s)
   }
   return { analysis, prediction }
 }
@@ -899,8 +896,8 @@ function AIMatchPredictionChart({ chartData, homeTeam, awayTeam, aiLoading, hasP
     confidence === 'High'
       ? 'text-emerald-400 bg-emerald-500/20'
       : confidence === 'Low'
-      ? 'text-red-400 bg-red-500/20'
-      : 'text-amber-400 bg-amber-500/20'
+        ? 'text-red-400 bg-red-500/20'
+        : 'text-amber-400 bg-amber-500/20'
 
   return (
     <div className="space-y-4">
@@ -1116,7 +1113,12 @@ export default function MatchDetail() {
     },
     onError: (err) => {
       const detail = err?.response?.data?.detail
-      toast.error(detail ? `Prediction failed: ${detail}` : 'Failed to generate prediction')
+      const status = err?.response?.status
+      if (status === 504 || err?.code === 'ECONNABORTED') {
+        toast.error('Prediction timed out — the server may be warming up. Please try again.')
+      } else {
+        toast.error(detail ? `Prediction failed: ${detail}` : 'Failed to generate prediction')
+      }
     },
   })
 
@@ -1218,8 +1220,8 @@ export default function MatchDetail() {
                 disabled={isPending}
               >
                 {isPending ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
-                <span className="hidden sm:inline">{prediction ? 'Re-generate' : 'Generate Prediction'}</span>
-                <span className="sm:hidden">{prediction ? 'Regen' : 'Predict'}</span>
+                <span className="hidden sm:inline">{isPending ? 'Generating… may take 30s' : prediction ? 'Re-generate' : 'Generate Prediction'}</span>
+                <span className="sm:hidden">{isPending ? 'Working…' : prediction ? 'Regen' : 'Predict'}</span>
               </button>
               <button
                 className="btn-secondary flex items-center gap-2 text-sm"
@@ -1308,7 +1310,7 @@ export default function MatchDetail() {
                 onClick={() => setActiveTab(t.key)}
                 icon={t.icon}
                 label={t.key === 'history_home' ? `${home.split(' ').slice(-1)} History` :
-                       t.key === 'history_away' ? `${away.split(' ').slice(-1)} History` : t.label}
+                  t.key === 'history_away' ? `${away.split(' ').slice(-1)} History` : t.label}
               />
             ))}
           </div>
@@ -1392,32 +1394,32 @@ export default function MatchDetail() {
 
       {/* Prediction */}
       {(!isFinished || prediction) && (
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        <div>
-          <SectionTitle>Match Prediction</SectionTitle>
-          {pLoading ? (
-            <LoadingState message="Loading prediction..." />
-          ) : prediction ? (
-            <PredictionCard prediction={prediction} homeTeam={home} awayTeam={away} />
-          ) : (
-            <div className="glass-card p-8 text-center">
-              <div className="text-3xl mb-2">🔮</div>
-              <div className="text-slate-300 font-medium">No prediction yet</div>
-              <div className="text-slate-500 text-sm mt-1">Click "Generate Prediction" to run the Dixon-Coles model.</div>
-            </div>
-          )}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <div>
+            <SectionTitle>Match Prediction</SectionTitle>
+            {pLoading ? (
+              <LoadingState message="Loading prediction..." />
+            ) : prediction ? (
+              <PredictionCard prediction={prediction} homeTeam={home} awayTeam={away} />
+            ) : (
+              <div className="glass-card p-8 text-center">
+                <div className="text-3xl mb-2">🔮</div>
+                <div className="text-slate-300 font-medium">No prediction yet</div>
+                <div className="text-slate-500 text-sm mt-1">Click "Generate Prediction" to run the Dixon-Coles model.</div>
+              </div>
+            )}
+          </div>
+          <div>
+            <SectionTitle>Match Prediction Chart by AI</SectionTitle>
+            <AIMatchPredictionChart
+              chartData={aiChartData}
+              homeTeam={home}
+              awayTeam={away}
+              aiLoading={aiLoading}
+              hasPrediction={!!prediction}
+            />
+          </div>
         </div>
-        <div>
-          <SectionTitle>Match Prediction Chart by AI</SectionTitle>
-          <AIMatchPredictionChart
-            chartData={aiChartData}
-            homeTeam={home}
-            awayTeam={away}
-            aiLoading={aiLoading}
-            hasPrediction={!!prediction}
-          />
-        </div>
-      </div>
       )}
 
       {/* AI Analysis & AI Prediction sections */}

@@ -5,11 +5,16 @@ adjusts probabilities for 0-0, 1-0, 0-1, 1-1 scorelines.
 Also incorporates time-decay weighting so recent matches matter more.
 """
 
-import numpy as np
-from scipy.stats import poisson
-from scipy.optimize import minimize
-from typing import Dict, List, Tuple, Optional
+import logging
 import math
+import time
+from typing import Dict, List, Tuple, Optional
+
+import numpy as np
+from scipy.optimize import minimize
+from scipy.stats import poisson
+
+logger = logging.getLogger(__name__)
 
 
 # ─── Low-Score Correction (Dixon-Coles tau) ─────────────────────────────────
@@ -139,6 +144,8 @@ def fit_dixon_coles(results: List[Dict], xi: float = 0.0018) -> Optional[Dict]:
     teams = sorted(set([r["home_team"] for r in results] + [r["away_team"] for r in results]))
     n = len(teams)
     team_idx = {t: i for i, t in enumerate(teams)}
+    logger.info(f"Dixon-Coles fitting: {n} teams, {len(results)} matches, {2*n+2} parameters")
+    t0 = time.perf_counter()
 
     weights = [time_decay_weight(r.get("days_ago", 0), xi) for r in results]
 
@@ -172,8 +179,10 @@ def fit_dixon_coles(results: List[Dict], xi: float = 0.0018) -> Optional[Dict]:
             method="SLSQP",
             bounds=bounds,
             constraints=constraints,
-            options={"maxiter": 300, "ftol": 1e-6},
+            options={"maxiter": 100, "ftol": 1e-5},
         )
+        elapsed = time.perf_counter() - t0
+        logger.info(f"Dixon-Coles optimization finished in {elapsed:.2f}s (success={result.success}, nit={result.nit})")
         if not result.success:
             return None
 

@@ -3,13 +3,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc, and_, or_
 from typing import Optional
 from datetime import datetime, timedelta, timezone
+import asyncio
 import json
+import logging
 import re
+import time
 
 from app.database import get_db
 from app.models.models import Match, Team, Prediction
 from app.schemas.schemas import PredictionRequest
 from app.services.prediction_engine import predict_match
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/predictions", tags=["predictions"])
 
@@ -183,19 +188,35 @@ async def generate_prediction(
         if candidates:
             market_odds = candidates
 
-    prediction = predict_match(
-        home_team_name=home_name,
-        away_team_name=away_name,
-        home_recent_matches=home_recent,
-        away_recent_matches=away_recent,
-        home_team_id=match.home_team_id,
-        away_team_id=match.away_team_id,
-        home_elo=home_elo,
-        away_elo=away_elo,
-        market_odds=market_odds,
-        historical_results=historical if len(historical) >= 20 else None,
-        model=payload.model,
-    )
+    # Run CPU-intensive prediction in a thread pool to avoid blocking the event loop
+    t0 = time.perf_counter()
+    logger.info(f"Generating prediction for match {match.id}: {home_name} vs {away_name}")
+    try:
+        prediction = await asyncio.wait_for(
+            asyncio.to_thread(
+                predict_match,
+                home_team_name=home_name,
+                away_team_name=away_name,
+                home_recent_matches=home_recent,
+                away_recent_matches=away_recent,
+                home_team_id=match.home_team_id,
+                away_team_id=match.away_team_id,
+                home_elo=home_elo,
+                away_elo=away_elo,
+                market_odds=market_odds,
+                historical_results=historical if len(historical) >= 20 else None,
+                model=payload.model,
+            ),
+            timeout=90,
+        )
+    except asyncio.TimeoutError:
+        logger.error(f"Prediction timed out for match {match.id} after 90s")
+        raise HTTPException(
+            status_code=504,
+            detail="Prediction took too long. Try again — the model may need fewer historical matches.",
+        )
+    elapsed = time.perf_counter() - t0
+    logger.info(f"Prediction for match {match.id} completed in {elapsed:.2f}s")
 
     # Persist prediction
     existing = await db.execute(select(Prediction).where(Prediction.match_id == match.id))

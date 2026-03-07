@@ -179,7 +179,7 @@ def fit_dixon_coles(results: List[Dict], xi: float = 0.0018) -> Optional[Dict]:
             method="SLSQP",
             bounds=bounds,
             constraints=constraints,
-            options={"maxiter": 100, "ftol": 1e-5},
+            options={"maxiter": 30, "ftol": 1e-3},
         )
         elapsed = time.perf_counter() - t0
         logger.info(f"Dixon-Coles optimization finished in {elapsed:.2f}s (success={result.success}, nit={result.nit})")

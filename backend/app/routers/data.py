@@ -217,13 +217,14 @@ async def _run_scrape(league: str):
                 # Check for duplicate (same home+away+date)
                 existing_q = await db.execute(
                     select(Match).where(
+                        Match.league_id == league_row.id,
                         Match.home_team_id == home.id,
                         Match.away_team_id == away.id,
                         Match.match_date >= match_date - timedelta(days=2),
                         Match.match_date <= match_date + timedelta(days=2),
                     )
                 )
-                existing = existing_q.scalar_one_or_none()
+                existing = existing_q.scalars().first()
 
                 status = "finished" if m.get("home_goals") is not None else "scheduled"
 
@@ -352,13 +353,14 @@ async def _run_fixture_scrape(league: str):
                 # Check for duplicate
                 existing_q = await db.execute(
                     select(Match).where(
+                        Match.league_id == league_row.id,
                         Match.home_team_id == home.id,
                         Match.away_team_id == away.id,
                         Match.match_date >= match_date - timedelta(days=2),
                         Match.match_date <= match_date + timedelta(days=2),
                     )
                 )
-                existing_row = existing_q.scalar_one_or_none()
+                existing_row = existing_q.scalars().first()
                 if existing_row:
                     if f.get("matchday") is not None and existing_row.matchday is None:
                         existing_row.matchday = f.get("matchday")
@@ -643,13 +645,14 @@ async def enrich_match_data(match_id: int, db: AsyncSession = Depends(get_db)):
 
         existing_q = await db.execute(
             select(Match).where(
+                Match.league_id == league_row.id,
                 Match.home_team_id == home.id,
                 Match.away_team_id == away.id,
                 Match.match_date >= match_date - timedelta(days=2),
                 Match.match_date <= match_date + timedelta(days=2),
             )
         )
-        existing = existing_q.scalar_one_or_none()
+        existing = existing_q.scalars().first()
 
         if existing:
             if m.get("home_goals") is not None and existing.home_goals is None:

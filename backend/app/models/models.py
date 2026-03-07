@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, Date, ForeignKey, Text
+from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, Date, ForeignKey, Text, UniqueConstraint
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 import enum
@@ -48,6 +48,9 @@ class Team(Base):
 
 class Match(Base):
     __tablename__ = "matches"
+    __table_args__ = (
+        UniqueConstraint("league_id", "home_team_id", "away_team_id", "match_date", name="uq_match_fixture"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     league_id = Column(Integer, ForeignKey("leagues.id"))

@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import {
-  triggerScrape, triggerFixtureScrape,
-  getScrapeStatus, getFixtureScrapeStatus,
+  triggerScrape, triggerFixtureScrape, triggerApiFootballScrape,
+  getScrapeStatus, getFixtureScrapeStatus, getApiFootballScrapeStatus,
   getAvailableLeagues,
   recalculateStats, recalculateElo
 } from '../services/api'
@@ -41,6 +41,12 @@ export default function DataManager() {
   const { data: fixtureStatus, refetch: refetchFixtureStatus } = useQuery({
     queryKey: ['fixture-scrape-status'],
     queryFn: getFixtureScrapeStatus,
+    refetchInterval: 5000,
+  })
+
+  const { data: apiFootballStatus, refetch: refetchApiFootballStatus } = useQuery({
+    queryKey: ['api-football-scrape-status'],
+    queryFn: getApiFootballScrapeStatus,
     refetchInterval: 5000,
   })
 
@@ -106,6 +112,37 @@ export default function DataManager() {
     },
   })
 
+  const apiFootballMut = useMutation({
+    mutationFn: () => triggerApiFootballScrape(selectedLeague),
+    onSuccess: () => {
+      addScrapeEntry('api-football', selectedLeague, 'started')
+      setScrapeHistory(getScrapeHistory())
+      toast.success(`Scraping API-Football for ${selectedLeague}...`)
+      setTimeout(() => {
+        refetchApiFootballStatus().then(({ data }) => {
+          const s = data?.[selectedLeague]
+          if (s) {
+            addScrapeEntry('api-football', selectedLeague, s.status === 'error' ? 'error' : 'completed', s)
+            setScrapeHistory(getScrapeHistory())
+            if (s.status !== 'error') {
+              toast.success('API-Football scrape complete! Redirecting to matches...')
+              setTimeout(() => navigate(`/matches?tab=results&league=${encodeURIComponent(selectedLeague)}`), 1000)
+            }
+          }
+        })
+        qc.invalidateQueries({ queryKey: ['leagues'] })
+        qc.invalidateQueries({ queryKey: ['matches-results'] })
+        qc.invalidateQueries({ queryKey: ['matches-upcoming'] })
+        qc.invalidateQueries({ queryKey: ['dashboard'] })
+      }, 3000)
+    },
+    onError: () => {
+      addScrapeEntry('api-football', selectedLeague, 'error', { error: 'Request failed' })
+      setScrapeHistory(getScrapeHistory())
+      toast.error('API-Football scrape failed')
+    },
+  })
+
   const statsMut = useMutation({
     mutationFn: () => recalculateStats(null),
     onSuccess: d => {
@@ -138,6 +175,7 @@ export default function DataManager() {
 
   const statusEntries = scrapeStatus ? Object.entries(scrapeStatus) : []
   const fixtureEntries = fixtureStatus ? Object.entries(fixtureStatus) : []
+  const apiFootballEntries = apiFootballStatus ? Object.entries(apiFootballStatus) : []
 
   return (
     <div className="space-y-6">
@@ -162,6 +200,13 @@ export default function DataManager() {
             desc: 'xG, xA, shot maps for top 6 European leagues. Scraped from embedded JSON.',
             status: 'Free',
             variant: 'green',
+          },
+          {
+            icon: '⚡',
+            name: 'API-Football (v3)',
+            desc: 'Live scores, comprehensive historical data, API driven integration.',
+            status: 'Key Required',
+            variant: 'yellow',
           },
           {
             icon: '🔴',
@@ -231,6 +276,16 @@ export default function DataManager() {
               {fixtureMut.isPending ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Calendar className="w-4 h-4" />}
               Scrape Upcoming Fixtures {selectedLeague || '...'}
             </button>
+            <div className="border-t border-white/10 pt-4 mt-4 !mt-6">
+              <button
+                className="btn-secondary flex items-center gap-2 w-full justify-center"
+                disabled={!selectedLeague || apiFootballMut.isPending}
+                onClick={() => apiFootballMut.mutate()}
+              >
+                {apiFootballMut.isPending ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
+                Scrape via API-Football {selectedLeague || '...'}
+              </button>
+            </div>
           </>
         )}
       </div>
@@ -258,8 +313,8 @@ export default function DataManager() {
                 <Badge
                   variant={
                     status.status === 'completed' ? 'green'
-                    : status.status === 'error' ? 'red'
-                    : 'yellow'
+                      : status.status === 'error' ? 'red'
+                        : 'yellow'
                   }
                 >
                   {status.status}
@@ -298,8 +353,48 @@ export default function DataManager() {
                 <Badge
                   variant={
                     status.status === 'completed' ? 'green'
-                    : status.status === 'error' ? 'red'
-                    : 'yellow'
+                      : status.status === 'error' ? 'red'
+                        : 'yellow'
+                  }
+                >
+                  {status.status}
+                </Badge>
+                {status.completed && (
+                  <div className="text-xs text-slate-500">
+                    {new Date(status.completed).toLocaleTimeString()}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* API-Football Scrape Status */}
+      {apiFootballEntries.length > 0 && (
+        <div className="glass-card p-5">
+          <SectionTitle>Scrape Status (API-Football)</SectionTitle>
+          <div className="space-y-2">
+            {apiFootballEntries.map(([league, status]) => (
+              <div key={league} className="flex items-center gap-4 p-3 bg-white/5 rounded-lg">
+                <div className="flex-1">
+                  <div className="text-sm font-medium text-white">{league}</div>
+                  {status.matches_fetched != null && (
+                    <div className="text-xs text-slate-400 mt-0.5">
+                      {status.matches_fetched} matches fetched
+                      {status.inserted != null && <> &middot; {status.inserted} new</>}
+                      {status.updated != null && <> &middot; {status.updated} updated</>}
+                    </div>
+                  )}
+                  {status.error && (
+                    <div className="text-xs text-red-400 mt-0.5">{status.error}</div>
+                  )}
+                </div>
+                <Badge
+                  variant={
+                    status.status === 'completed' ? 'green'
+                      : status.status === 'error' ? 'red'
+                        : 'yellow'
                   }
                 >
                   {status.status}
@@ -379,8 +474,8 @@ export default function DataManager() {
                 <span className="w-16 shrink-0">
                   <Badge variant={
                     entry.status === 'completed' ? 'green'
-                    : entry.status === 'error' ? 'red'
-                    : 'yellow'
+                      : entry.status === 'error' ? 'red'
+                        : 'yellow'
                   }>
                     {entry.status}
                   </Badge>

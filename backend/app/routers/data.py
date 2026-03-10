@@ -22,11 +22,13 @@ from app.services.data_scraper import (
 from app.services.form_calculator import calculate_team_form
 from app.services.dixon_coles import update_elo_ratings
 from app.dependencies import verify_admin_key
+from app.services.api_football import scrape_api_football_league
 
 router = APIRouter(prefix="/data", tags=["data"])
 
 _scrape_status: dict = {}
 _fixture_status: dict = {}
+_api_football_status: dict = {}
 
 
 async def _get_or_create_league(db: AsyncSession, name: str) -> League:
@@ -410,6 +412,111 @@ async def scrape_status():
 @router.get("/fixture-scrape-status")
 async def fixture_scrape_status():
     return _fixture_status
+
+
+@router.get("/api-football-scrape-status")
+async def api_football_scrape_status():
+    return _api_football_status
+
+
+async def _run_api_football_scrape(league: str):
+    _api_football_status[league] = {"status": "running", "started": datetime.now(timezone.utc).isoformat()}
+    try:
+        matches = await scrape_api_football_league(league)
+        _api_football_status[league]["matches_fetched"] = len(matches)
+
+        if not matches:
+            _api_football_status[league].update({
+                "status": "completed",
+                "completed": datetime.now(timezone.utc).isoformat(),
+                "inserted": 0,
+                "updated": 0,
+            })
+            return
+
+        async with AsyncSessionLocal() as db:
+            league_row = await _get_or_create_league(db, league)
+            team_cache: dict[str, Team] = {}
+
+            async def get_team(name: str) -> Team:
+                if name not in team_cache:
+                    team_cache[name] = await _get_or_create_team(db, name, league_row.id)
+                return team_cache[name]
+
+            inserted = 0
+            updated = 0
+            for m in matches:
+                if not m.get("home_team") or not m.get("away_team") or not m.get("match_date"):
+                    continue
+
+                home = await get_team(m["home_team"])
+                away = await get_team(m["away_team"])
+
+                try:
+                    match_date = datetime.fromisoformat(m["match_date"])
+                    if match_date.tzinfo is None:
+                        match_date = match_date.replace(tzinfo=timezone.utc)
+                except (ValueError, TypeError):
+                    continue
+
+                existing_q = await db.execute(
+                    select(Match).where(
+                        Match.league_id == league_row.id,
+                        Match.home_team_id == home.id,
+                        Match.away_team_id == away.id,
+                        Match.match_date >= match_date - timedelta(days=2),
+                        Match.match_date <= match_date + timedelta(days=2),
+                    )
+                )
+                existing = existing_q.scalars().first()
+
+                if existing:
+                    if m.get("home_goals") is not None and existing.home_goals is None:
+                        existing.status = "finished"
+                        existing.home_goals = m["home_goals"]
+                        existing.away_goals = m.get("away_goals")
+                        existing.ht_home_goals = m.get("ht_home_goals")
+                        existing.ht_away_goals = m.get("ht_away_goals")
+                        updated += 1
+                    elif m.get("matchday") is not None and existing.matchday is None:
+                        existing.matchday = m["matchday"]
+                        updated += 1
+                else:
+                    row = Match(
+                        league_id=league_row.id,
+                        home_team_id=home.id,
+                        away_team_id=away.id,
+                        match_date=match_date,
+                        season=m.get("season", ""),
+                        matchday=m.get("matchday"),
+                        status=m.get("status", "scheduled"),
+                        home_goals=m.get("home_goals"),
+                        away_goals=m.get("away_goals"),
+                        ht_home_goals=m.get("ht_home_goals"),
+                        ht_away_goals=m.get("ht_away_goals"),
+                    )
+                    db.add(row)
+                    inserted += 1
+
+            await db.commit()
+
+        _api_football_status[league].update({
+            "status": "completed",
+            "completed": datetime.now(timezone.utc).isoformat(),
+            "inserted": inserted,
+            "updated": updated,
+        })
+    except Exception as e:
+        _api_football_status[league] = {"status": "error", "error": str(e)}
+
+
+@router.post("/scrape-api-football/{league}", dependencies=[Depends(verify_admin_key)])
+async def trigger_api_football_scrape(league: str, background_tasks: BackgroundTasks):
+    from app.services.api_football import LEAGUE_MAPPING
+    if league not in LEAGUE_MAPPING:
+        raise HTTPException(status_code=400, detail=f"Unknown league. Available: {list(LEAGUE_MAPPING.keys())}")
+    background_tasks.add_task(_run_api_football_scrape, league)
+    return {"status": "api_football_scrape_started", "league": league}
 
 
 @router.post("/scrape-match/{match_id}", dependencies=[Depends(verify_admin_key)])

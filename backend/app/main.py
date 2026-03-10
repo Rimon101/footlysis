@@ -1,6 +1,10 @@
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from app.database import init_db
 from app.routers import matches, teams, players, predictions, betting, leagues, data, dashboard

@@ -65,8 +65,6 @@ export const getPredictionForMatch = matchId =>
 export const listPredictions = params => api.get('/predictions/', { params }).then(r => r.data)
 export const getAIAnalysis = (matchId, model) =>
   api.post(`/predictions/ai-analysis/${matchId}`, null, { params: model ? { model } : {}, timeout: 60000 }).then(r => r.data)
-export const getAIConsensus = matchId =>
-  api.post(`/predictions/ai-consensus/${matchId}`, null, { timeout: 120000 }).then(r => r.data)
 
 // ─── Betting ─────────────────────────────────────────────────────────────────
 export const calculateKelly = payload => api.post('/betting/kelly', payload).then(r => r.data)
@@ -80,8 +78,10 @@ export const getOverround = (home, draw, away) =>
 // ─── Data Management ─────────────────────────────────────────────────────────
 export const triggerScrape = league => api.post(`/data/scrape/${encodeURIComponent(league)}`, null, { headers: getAdminHeaders() }).then(r => r.data)
 export const triggerFixtureScrape = league => api.post(`/data/scrape-fixtures/${encodeURIComponent(league)}`, null, { headers: getAdminHeaders() }).then(r => r.data)
+export const triggerApiFootballScrape = league => api.post(`/data/scrape-api-football/${encodeURIComponent(league)}`, null, { headers: getAdminHeaders() }).then(r => r.data)
 export const getScrapeStatus = () => api.get('/data/scrape-status').then(r => r.data)
 export const getFixtureScrapeStatus = () => api.get('/data/fixture-scrape-status').then(r => r.data)
+export const getApiFootballScrapeStatus = () => api.get('/data/api-football-scrape-status').then(r => r.data)
 export const getAvailableLeagues = () => api.get('/data/available-leagues').then(r => r.data)
 export const scrapeMatch = matchId => api.post(`/data/scrape-match/${matchId}`, null, { headers: getAdminHeaders() }).then(r => r.data)
 export const enrichMatch = matchId => api.post(`/data/enrich-match/${matchId}`, null, { timeout: 120000, headers: getAdminHeaders() }).then(r => r.data)

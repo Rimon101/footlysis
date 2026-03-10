@@ -47,8 +47,8 @@ export default function Layout() {
         <div className="p-5 border-b border-white/10">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center">
-                <Activity className="w-4 h-4 text-white" />
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden">
+                <img src="/logo.png" alt="Footlysis Logo" className="w-full h-full object-cover" />
               </div>
               <div>
                 <div className="font-bold text-white text-lg leading-none">Footlysis</div>
@@ -98,8 +98,8 @@ export default function Layout() {
             <Menu className="w-5 h-5" />
           </button>
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded bg-brand-500 flex items-center justify-center">
-              <Activity className="w-3 h-3 text-white" />
+            <div className="w-6 h-6 rounded flex items-center justify-center overflow-hidden">
+              <img src="/logo.png" alt="Footlysis Logo" className="w-full h-full object-cover" />
             </div>
             <span className="font-bold text-white text-sm">Footlysis</span>
           </div>

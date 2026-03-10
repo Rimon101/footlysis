@@ -13,27 +13,14 @@ from app.database import get_db
 from app.models.models import Match, Team, Prediction
 from app.schemas.schemas import PredictionRequest
 from app.services.prediction_engine import predict_match
+from app.services.normalization import normalize_team_name
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/predictions", tags=["predictions"])
 
 
-def _team_key(value: str) -> str:
-    v = (value or "").strip().lower()
-    v = re.sub(r"[^a-z0-9 ]", "", v)
-    v = re.sub(r"\b(fc|cf|ac|afc|sc|sv|fk|ifk|club)\b", "", v)
-    v = re.sub(r"\s+", " ", v).strip()
-    alias = {
-        "fcutrecht": "utrecht",
-        "heraclesalmelo": "heracles",
-        "ajaxamsterdam": "ajax",
-        "psveindhoven": "psv",
-        "azalkmaar": "az",
-        "fctwente": "twente",
-    }
-    compact = v.replace(" ", "")
-    return alias.get(compact, compact)
+# Function removed in favor of app.services.normalization.normalize_team_name
 
 
 async def _resolve_alias_team_ids(db: AsyncSession, base_team_id: int, league_id: Optional[int]) -> set[int]:
@@ -41,13 +28,13 @@ async def _resolve_alias_team_ids(db: AsyncSession, base_team_id: int, league_id
     if not team_row:
         return {base_team_id}
 
-    target_key = _team_key(team_row.name)
+    target_key = normalize_team_name(team_row.name)
     q = select(Team)
     if league_id:
         q = q.where(Team.league_id == league_id)
     teams = (await db.execute(q)).scalars().all()
-
-    ids = {t.id for t in teams if _team_key(t.name) == target_key}
+    
+    ids = {t.id for t in teams if normalize_team_name(t.name) == target_key}
     ids.add(base_team_id)
     return ids
 

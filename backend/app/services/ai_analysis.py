@@ -163,17 +163,21 @@ CONSENSUS_SYSTEM_PROMPT = (
 # ── Groq model registry ──────────────────────────────────────────────────────
 
 GROQ_MODELS = {
-    "llama-4-maverick": {
-        "id": "meta-llama/llama-4-maverick-17b-128e-instruct",
-        "label": "Llama 4 Maverick",
+    "llama-3.3-70b": {
+        "id": "llama-3.3-70b-versatile",
+        "label": "Llama 3.3 70B (Versatile)",
     },
-    "gpt-oss-120b": {
-        "id": "openai/gpt-oss-120b",
-        "label": "GPT OSS 120B",
+    "llama-3.1-8b": {
+        "id": "llama-3.1-8b-instant",
+        "label": "Llama 3.1 8B (Instant)",
+    },
+    "mixtral-8x7b": {
+        "id": "mixtral-8x7b-32768",
+        "label": "Mixtral 8x7B",
     },
 }
 
-DEFAULT_MODEL = "llama-4-maverick"
+DEFAULT_MODEL = "llama-3.3-70b"
 
 # ── OpenAI integration ────────────────────────────────────────────────────────
 
@@ -330,15 +334,11 @@ async def _call_single_model(client, model_key: str, prompt: str) -> Dict:
             max_tokens=1200,
             temperature=0.7,
         )
-        content = response.choices[0].message.content
-        # Strip chart JSON from individual analyses (we only want it from synthesis)
-        idx = content.rfind("CHART_JSON:")
-        if idx != -1:
-            content = content[:idx].strip()
-        return {"model": model_key, "label": label, "analysis": content, "status": "success"}
+        tokens = response.usage.total_tokens if response.usage else 0
+        return {"model": model_key, "label": label, "analysis": content, "status": "success", "tokens": tokens}
     except Exception as e:
         logger.warning(f"Model {label} failed: {e}")
-        return {"model": model_key, "label": label, "analysis": None, "status": "error", "message": str(e)}
+        return {"model": model_key, "label": label, "analysis": None, "status": "error", "message": str(e), "tokens": 0}
 
 
 async def generate_consensus_analysis(
@@ -399,10 +399,12 @@ async def generate_consensus_analysis(
         logger.info(f"Consensus AI: synthesising {len(individual_analyses)} analyses...")
         synthesis_prompt = _build_synthesis_prompt(individual_analyses, match_info)
 
-        # Use GPT OSS 120B for synthesis if available, otherwise Llama 4
-        synth_model = "openai/gpt-oss-120b"
+        # Use Llama 3.3 70B for synthesis as it is the most capable
+        synth_model_key = "llama-3.3-70b"
+        synth_model_id = GROQ_MODELS[synth_model_key]["id"]
+        
         response = await client.chat.completions.create(
-            model=synth_model,
+            model=synth_model_id,
             messages=[
                 {
                     "role": "system",
@@ -415,6 +417,7 @@ async def generate_consensus_analysis(
         )
 
         content = response.choices[0].message.content
+        synth_tokens = response.usage.total_tokens if response.usage else 0
 
         # Extract chart data
         chart_data = None
@@ -430,9 +433,7 @@ async def generate_consensus_analysis(
                 except Exception as parse_err:
                     logger.warning(f"Failed to parse consensus chart JSON: {parse_err}")
 
-        total_tokens = sum(
-            r.get("tokens", 0) for r in results
-        )
+        total_tokens = sum(r.get("tokens", 0) for r in results) + synth_tokens
 
         return {
             "status": "success",
@@ -440,7 +441,8 @@ async def generate_consensus_analysis(
             "chart_data": chart_data,
             "models_used": list(individual_analyses.keys()),
             "individual_results": individual_summaries,
-            "synthesis_model": "GPT OSS 120B",
+            "synthesis_model": GROQ_MODELS[synth_model_key]["label"],
+            "tokens_used": total_tokens,
         }
 
     except ImportError:

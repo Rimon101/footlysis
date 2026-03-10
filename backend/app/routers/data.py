@@ -23,6 +23,7 @@ from app.services.form_calculator import calculate_team_form
 from app.services.dixon_coles import update_elo_ratings
 from app.dependencies import verify_admin_key
 from app.services.api_football import scrape_api_football_league
+from app.services.normalization import normalize_team_name
 
 router = APIRouter(prefix="/data", tags=["data"])
 
@@ -42,84 +43,16 @@ async def _get_or_create_league(db: AsyncSession, name: str) -> League:
 
 
 async def _get_or_create_team(db: AsyncSession, name: str, league_id: int) -> Team:
-    def _team_key(value: str) -> str:
-        # Normalize naming differences across providers
-        v = (value or "").strip().lower()
-        v = re.sub(r"[^a-z0-9 ]", "", v)
-        v = re.sub(r"\b(fc|cf|ac|afc|sc|sv|fk|ifk|club|de|the)\b", "", v)
-        v = re.sub(r"\s+", " ", v).strip()
-        alias = {
-            # Eredivisie
-            "fcutrecht": "utrecht",
-            "heraclesalmelo": "heracles",
-            "ajaxamsterdam": "ajax",
-            "psveindhoven": "psv",
-            "azalkmaar": "az",
-            "fctwente": "twente",
-            # La Liga
-            "celta": "celtavigo",
-            "celtavigo": "celtavigo",
-            "celtadevigo": "celtavigo",
-            "realbetis": "betis",
-            "realbetisbalompie": "betis",
-            "athleticclub": "athleticbilbao",
-            "athletic": "athleticbilbao",
-            "atleticodemadrid": "atleticomadrid",
-            "atletico": "atleticomadrid",
-            "atlmadrid": "atleticomadrid",
-            "deportivoalaves": "alaves",
-            "alaves": "alaves",
-            "espanyolbarcelona": "espanyol",
-            "rayovallecano": "rayo",
-            "realvalladolid": "valladolid",
-            "realsociedad": "realsociedad",
-            "realsociedaddefutbol": "realsociedad",
-            # Premier League
-            "manchesterunited": "manutd",
-            "manunited": "manutd",
-            "manchestercity": "mancity",
-            "manchestercity": "mancity",
-            "tottenhamhotspur": "tottenham",
-            "wolverhamptonwanderers": "wolverhampton",
-            "wolves": "wolverhampton",
-            "newcastleunited": "newcastle",
-            "nottinghamforest": "nottmforest",
-            "brightonandhovealbion": "brighton",
-            "leicestercity": "leicester",
-            "westhamunited": "westham",
-            "ipswichtown": "ipswich",
-            # Serie A
-            "acmilan": "milan",
-            "internazionale": "inter",
-            "hellas": "hellasverona",
-            "hellasveronafc": "hellasverona",
-            "verona": "hellasverona",
-            # Bundesliga
-            "bayernmunich": "bayernmunchen",
-            "bayern": "bayernmunchen",
-            "bayerleverkusen": "leverkusen",
-            "borussiamgladbach": "mgladbach",
-            "borussiamonchengladbach": "mgladbach",
-            "borussiadortmund": "dortmund",
-            "eintrachtfrankfurt": "frankfurt",
-            # Ligue 1
-            "parissaintgermain": "psg",
-            "olympiquemarseille": "marseille",
-            "olympiquelyonnais": "lyon",
-            "asstienne": "stetienne",
-            "saintetienne": "stetienne",
-        }
-        compact = v.replace(" ", "")
-        return alias.get(compact, compact)
+    # Function removed in favor of app.services.normalization.normalize_team_name
 
     # Always resolve within the same league first.
     result = await db.execute(select(Team).where(Team.name == name, Team.league_id == league_id))
     team = result.scalar_one_or_none()
     if not team:
-        norm = _team_key(name)
+        norm = normalize_team_name(name)
         league_teams_result = await db.execute(select(Team).where(Team.league_id == league_id))
         for existing in league_teams_result.scalars().all():
-            if _team_key(existing.name) == norm:
+            if normalize_team_name(existing.name) == norm:
                 team = existing
                 break
 

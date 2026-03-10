@@ -51,19 +51,19 @@ export default function DataManager() {
   })
 
   const scrapeMut = useMutation({
-    mutationFn: () => triggerScrape(selectedLeague),
+    mutationFn: () => triggerApiFootballScrape(selectedLeague),
     onSuccess: () => {
       addScrapeEntry('results', selectedLeague, 'started')
       setScrapeHistory(getScrapeHistory())
-      toast.success(`Scraping ${selectedLeague}...`)
+      toast.success(`Scraping results for ${selectedLeague} via API-Football...`)
       setTimeout(() => {
-        refetchStatus().then(({ data }) => {
+        refetchApiFootballStatus().then(({ data }) => {
           const s = data?.[selectedLeague]
           if (s) {
             addScrapeEntry('results', selectedLeague, s.status === 'error' ? 'error' : 'completed', s)
             setScrapeHistory(getScrapeHistory())
             if (s.status !== 'error') {
-              toast.success('Scrape complete! Redirecting to matches...')
+              toast.success('Results updated! Redirecting to matches...')
               setTimeout(() => navigate(`/matches?tab=results&league=${encodeURIComponent(selectedLeague)}`), 1000)
             }
           }
@@ -83,19 +83,19 @@ export default function DataManager() {
   })
 
   const fixtureMut = useMutation({
-    mutationFn: () => triggerFixtureScrape(selectedLeague),
+    mutationFn: () => triggerApiFootballScrape(selectedLeague),
     onSuccess: () => {
       addScrapeEntry('fixtures', selectedLeague, 'started')
       setScrapeHistory(getScrapeHistory())
-      toast.success(`Scraping fixtures for ${selectedLeague}...`)
+      toast.success(`Scraping fixtures for ${selectedLeague} via API-Football...`)
       setTimeout(() => {
-        refetchFixtureStatus().then(({ data }) => {
+        refetchApiFootballStatus().then(({ data }) => {
           const s = data?.[selectedLeague]
           if (s) {
             addScrapeEntry('fixtures', selectedLeague, s.status === 'error' ? 'error' : 'completed', s)
             setScrapeHistory(getScrapeHistory())
             if (s.status !== 'error') {
-              toast.success('Fixtures scraped! Redirecting to matches...')
+              toast.success('Fixtures updated! Redirecting to matches...')
               setTimeout(() => navigate(`/matches?tab=upcoming&league=${encodeURIComponent(selectedLeague)}`), 1000)
             }
           }
@@ -112,36 +112,7 @@ export default function DataManager() {
     },
   })
 
-  const apiFootballMut = useMutation({
-    mutationFn: () => triggerApiFootballScrape(selectedLeague),
-    onSuccess: () => {
-      addScrapeEntry('api-football', selectedLeague, 'started')
-      setScrapeHistory(getScrapeHistory())
-      toast.success(`Scraping API-Football for ${selectedLeague}...`)
-      setTimeout(() => {
-        refetchApiFootballStatus().then(({ data }) => {
-          const s = data?.[selectedLeague]
-          if (s) {
-            addScrapeEntry('api-football', selectedLeague, s.status === 'error' ? 'error' : 'completed', s)
-            setScrapeHistory(getScrapeHistory())
-            if (s.status !== 'error') {
-              toast.success('API-Football scrape complete! Redirecting to matches...')
-              setTimeout(() => navigate(`/matches?tab=results&league=${encodeURIComponent(selectedLeague)}`), 1000)
-            }
-          }
-        })
-        qc.invalidateQueries({ queryKey: ['leagues'] })
-        qc.invalidateQueries({ queryKey: ['matches-results'] })
-        qc.invalidateQueries({ queryKey: ['matches-upcoming'] })
-        qc.invalidateQueries({ queryKey: ['dashboard'] })
-      }, 3000)
-    },
-    onError: () => {
-      addScrapeEntry('api-football', selectedLeague, 'error', { error: 'Request failed' })
-      setScrapeHistory(getScrapeHistory())
-      toast.error('API-Football scrape failed')
-    },
-  })
+
 
   const statsMut = useMutation({
     mutationFn: () => recalculateStats(null),
@@ -256,8 +227,8 @@ export default function DataManager() {
             <div className="text-xs text-slate-400 bg-white/5 rounded-lg p-3">
               <strong className="text-white">What gets scraped:</strong>
               <ul className="mt-1 space-y-0.5 list-disc list-inside">
-                <li><strong>Results:</strong> Last 4 seasons of results (2021–2025) from Football-Data.co.uk, xG from Understat, odds, shots, corners, cards</li>
-                <li><strong>Fixtures:</strong> Upcoming scheduled matches from FBRef + Understat</li>
+                <li><strong>Results:</strong> Past results for the current season, halftone scores, and status from API-Football.</li>
+                <li><strong>Upcoming:</strong> Future scheduled matches and dates from API-Football.</li>
               </ul>
             </div>
             <button
@@ -276,104 +247,16 @@ export default function DataManager() {
               {fixtureMut.isPending ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Calendar className="w-4 h-4" />}
               Scrape Upcoming Fixtures {selectedLeague || '...'}
             </button>
-            <div className="border-t border-white/10 pt-4 mt-4 !mt-6">
-              <button
-                className="btn-secondary flex items-center gap-2 w-full justify-center"
-                disabled={!selectedLeague || apiFootballMut.isPending}
-                onClick={() => apiFootballMut.mutate()}
-              >
-                {apiFootballMut.isPending ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
-                Scrape via API-Football {selectedLeague || '...'}
-              </button>
-            </div>
           </>
         )}
       </div>
 
-      {/* Scrape Status */}
-      {statusEntries.length > 0 && (
-        <div className="glass-card p-5">
-          <SectionTitle>Scrape Status (Results)</SectionTitle>
-          <div className="space-y-2">
-            {statusEntries.map(([league, status]) => (
-              <div key={league} className="flex items-center gap-4 p-3 bg-white/5 rounded-lg">
-                <div className="flex-1">
-                  <div className="text-sm font-medium text-white">{league}</div>
-                  {status.matches_fetched != null && (
-                    <div className="text-xs text-slate-400 mt-0.5">
-                      {status.matches_fetched} matches fetched
-                      {status.inserted != null && <> &middot; {status.inserted} inserted</>}
-                      {status.updated != null && <> &middot; {status.updated} updated</>}
-                    </div>
-                  )}
-                  {status.error && (
-                    <div className="text-xs text-red-400 mt-0.5">{status.error}</div>
-                  )}
-                </div>
-                <Badge
-                  variant={
-                    status.status === 'completed' ? 'green'
-                      : status.status === 'error' ? 'red'
-                        : 'yellow'
-                  }
-                >
-                  {status.status}
-                </Badge>
-                {status.completed && (
-                  <div className="text-xs text-slate-500">
-                    {new Date(status.completed).toLocaleTimeString()}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
-      {/* Fixture Scrape Status */}
-      {fixtureEntries.length > 0 && (
-        <div className="glass-card p-5">
-          <SectionTitle>Scrape Status (Upcoming Fixtures)</SectionTitle>
-          <div className="space-y-2">
-            {fixtureEntries.map(([league, status]) => (
-              <div key={league} className="flex items-center gap-4 p-3 bg-white/5 rounded-lg">
-                <div className="flex-1">
-                  <div className="text-sm font-medium text-white">{league}</div>
-                  {status.fixtures_fetched != null && (
-                    <div className="text-xs text-slate-400 mt-0.5">
-                      {status.fixtures_fetched} fixtures found
-                      {status.inserted != null && <> &middot; {status.inserted} new</>}
-                      {status.skipped != null && <> &middot; {status.skipped} already existed</>}
-                    </div>
-                  )}
-                  {status.error && (
-                    <div className="text-xs text-red-400 mt-0.5">{status.error}</div>
-                  )}
-                </div>
-                <Badge
-                  variant={
-                    status.status === 'completed' ? 'green'
-                      : status.status === 'error' ? 'red'
-                        : 'yellow'
-                  }
-                >
-                  {status.status}
-                </Badge>
-                {status.completed && (
-                  <div className="text-xs text-slate-500">
-                    {new Date(status.completed).toLocaleTimeString()}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* API-Football Scrape Status */}
       {apiFootballEntries.length > 0 && (
         <div className="glass-card p-5">
-          <SectionTitle>Scrape Status (API-Football)</SectionTitle>
+          <SectionTitle>Live Scrape Status</SectionTitle>
           <div className="space-y-2">
             {apiFootballEntries.map(([league, status]) => (
               <div key={league} className="flex items-center gap-4 p-3 bg-white/5 rounded-lg">

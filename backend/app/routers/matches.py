@@ -9,6 +9,7 @@ import re
 from app.database import get_db
 from app.models.models import Match, Team, TeamStats
 from app.schemas.schemas import MatchOut, MatchCreate, MatchUpdate
+from app.services.normalization import normalize_team_name
 
 
 def _with_relations(query):
@@ -21,23 +22,7 @@ def _with_relations(query):
 router = APIRouter(prefix="/matches", tags=["matches"])
 
 
-def _canonical_team_key(name: Optional[str]) -> str:
-    """Normalize provider-specific team names to a shared comparison key."""
-    v = (name or "").strip().lower()
-    v = re.sub(r"[^a-z0-9 ]", "", v)
-    v = re.sub(r"\b(fc|cf|ac|afc|sc|sv|fk|ifk|club|de|the)\b", "", v)
-    v = re.sub(r"\s+", " ", v).strip()
-    compact = v.replace(" ", "")
-    alias = {
-        "celta": "celtavigo",
-        "realbetis": "betis",
-        "athleticclub": "athleticbilbao",
-        "athletic": "athleticbilbao",
-        "atleticodemadrid": "atleticomadrid",
-        "deportivoalaves": "alaves",
-        "espanyolbarcelona": "espanyol",
-    }
-    return alias.get(compact, compact)
+# Function removed in favor of app.services.normalization.normalize_team_name
 
 
 def _as_team_id_set(team_ref: Union[int, Set[int]]) -> Set[int]:
@@ -56,11 +41,11 @@ async def _resolve_alias_team_ids(
     if not primary:
         return {primary_team_id}
 
-    target_key = _canonical_team_key(primary.name)
+    target_key = normalize_team_name(primary.name)
     all_teams = await db.execute(select(Team))
     ids = {
         t.id for t in all_teams.scalars().all()
-        if _canonical_team_key(t.name) == target_key
+        if normalize_team_name(t.name) == target_key
     }
     ids.add(primary_team_id)
     return ids

@@ -1,0 +1,11 @@
+# https://www.robotstxt.org/robotstxt.html
+User-agent: *
+Allow: /
+
+# Disallow administrative and private paths
+Disallow: /data
+Disallow: /scrapes
+Disallow: /standings # optional, if you want to keep results private/internal
+
+# Sitemap location
+Sitemap: https://footlysis-frontend.onrender.com/sitemap.xml

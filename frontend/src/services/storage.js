@@ -14,6 +14,8 @@ const KEYS = {
   ANALYSIS_MATCHES: 'footlysis_analysis_matches',
   AI_ANALYSIS: 'footlysis_ai_analysis',
   AI_CHART_DATA: 'footlysis_ai_chart_data',
+  AD_CLICKS_ANALYSIS: 'footlysis_ad_clicks_analysis',
+  AD_CLICKS_PREDICTION: 'footlysis_ad_clicks_prediction',
 }
 
 const MAX_HISTORY = 100 // keep last 100 scrape entries
@@ -222,6 +224,26 @@ export function getPreference(key, fallback = null) {
 /** Clear all preferences */
 export function clearPreferences() {
   localStorage.removeItem(KEYS.PREFERENCES)
+}
+
+// ─── Ad Tracking ─────────────────────────────────────────────────────────────
+
+export function getAdClickCount(type) {
+  const key = type === 'analysis' ? KEYS.AD_CLICKS_ANALYSIS : KEYS.AD_CLICKS_PREDICTION
+  return parseInt(localStorage.getItem(key) || '0')
+}
+
+export function incrementAdClickCount(type) {
+  const key = type === 'analysis' ? KEYS.AD_CLICKS_ANALYSIS : KEYS.AD_CLICKS_PREDICTION
+  const current = getAdClickCount(type)
+  const next = current + 1
+  localStorage.setItem(key, next.toString())
+  return next
+}
+
+export function resetAdClickCount(type) {
+  const key = type === 'analysis' ? KEYS.AD_CLICKS_ANALYSIS : KEYS.AD_CLICKS_PREDICTION
+  localStorage.setItem(key, '0')
 }
 
 // ─── Full reset ──────────────────────────────────────────────────────────────

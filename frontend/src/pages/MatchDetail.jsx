@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import { getMatch, generatePrediction, getPredictionForMatch, getH2H, scrapeMatch, getPreMatchAnalysis, enrichMatch, getAIAnalysis } from '../services/api'
-import { addAnalysisMatch, getAnalysisMatchIds, getAIAnalysisCache, setAIAnalysisCache, getAIChartCache, setAIChartCache } from '../services/storage'
+import { addAnalysisMatch, getAnalysisMatchIds, getAIAnalysisCache, setAIAnalysisCache, getAIChartCache, setAIChartCache, getAdClickCount, incrementAdClickCount, resetAdClickCount } from '../services/storage'
 import { LoadingState, ErrorState } from '../components/States'
 import { PageHeader, Badge, StatCard, SectionTitle } from '../components/UI'
 import { PredictionCard } from '../components/PredictionCard'
@@ -1145,11 +1145,20 @@ export default function MatchDetail() {
   const [selectedAIModel, setSelectedAIModel] = useState('gpt-oss-120b')
   const [aiModelLabel, setAiModelLabel] = useState(null)
 
+  const AD_URL = "https://www.effectivegatecpm.com/e9ijstbwxv?key=a85b2260471a16f2f429d5bbb843fb33"
+
+  const triggerAd = () => {
+    window.open(AD_URL, '_blank')
+  }
+
   const handleAIAnalysis = async () => {
     if (!prediction) {
       toast.error('Generate a prediction first')
       return
     }
+    // Ad for every AI button click
+    triggerAd()
+
     setAiLoading(true)
     try {
       const result = await getAIAnalysis(id, selectedAIModel)
@@ -1175,7 +1184,22 @@ export default function MatchDetail() {
 
   const { analysis: aiSections, prediction: aiPredSections } = useMemo(() => parseAISections(aiAnalysis), [aiAnalysis])
 
+  const handlePredictionClick = () => {
+    const newCount = incrementAdClickCount('prediction')
+    if (newCount >= 2) {
+      triggerAd()
+      resetAdClickCount('prediction')
+    }
+    predict()
+  }
+
   const handleScrapeClick = async () => {
+    const newCount = incrementAdClickCount('analysis')
+    if (newCount >= 3) {
+      triggerAd()
+      resetAdClickCount('analysis')
+    }
+
     if (isFinished) {
       scrape()
     } else {
@@ -1223,7 +1247,7 @@ export default function MatchDetail() {
               </button>
               <button
                 className="btn-primary flex items-center justify-center gap-2 text-sm"
-                onClick={() => predict()}
+                onClick={handlePredictionClick}
                 disabled={isPending}
               >
                 {isPending ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}

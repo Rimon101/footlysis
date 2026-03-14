@@ -9,6 +9,53 @@
     @apply bg-pitch-dark text-white font-sans antialiased;
     margin: 0;
   }
+  
+  /* Custom Cursor Styles */
+  @media (hover: hover) {
+    * { cursor: none !important; }
+    
+    .custom-cursor-ring {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 32px;
+      height: 32px;
+      border: 1.5px solid rgba(var(--brand-500-rgb, 59, 130, 246), 0.5);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 9999;
+      transition: width 0.3s ease, height 0.3s ease, border-color 0.3s ease;
+      opacity: 0;
+    }
+
+    .custom-cursor-ring.visible { opacity: 1; }
+    .custom-cursor-ring.expanded {
+      width: 50px;
+      height: 50px;
+      border-color: rgba(var(--brand-500-rgb, 59, 130, 246), 0.8);
+      background: rgba(var(--brand-500-rgb, 59, 130, 246), 0.1);
+    }
+
+    .custom-cursor-dot {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 6px;
+      height: 6px;
+      background: #3b82f6; /* brand-500 */
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 10000;
+      opacity: 0;
+      transition: transform 0.1s ease-out, opacity 0.2s ease;
+    }
+    
+    .custom-cursor-dot.visible { opacity: 1; }
+    .custom-cursor-dot.active {
+      transform: scale(1.5);
+    }
+  }
+
   ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-track { background: #0a1628; }
   ::-webkit-scrollbar-thumb { background: #1a2f5a; border-radius: 9999px; }

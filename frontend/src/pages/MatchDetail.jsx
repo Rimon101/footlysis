@@ -1185,20 +1185,12 @@ export default function MatchDetail() {
   const { analysis: aiSections, prediction: aiPredSections } = useMemo(() => parseAISections(aiAnalysis), [aiAnalysis])
 
   const handlePredictionClick = () => {
-    const newCount = incrementAdClickCount('prediction')
-    if (newCount >= 2) {
-      triggerAd()
-      resetAdClickCount('prediction')
-    }
+    triggerAd()
     predict()
   }
 
   const handleScrapeClick = async () => {
-    const newCount = incrementAdClickCount('analysis')
-    if (newCount >= 3) {
-      triggerAd()
-      resetAdClickCount('analysis')
-    }
+    triggerAd()
 
     if (isFinished) {
       scrape()

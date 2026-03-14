@@ -128,7 +128,7 @@ def time_decay_weight(days_ago: int, xi: float = 0.0018) -> float:
 
 # ─── MLE Fitting with Time-Decay ─────────────────────────────────────────────
 
-def fit_dixon_coles(results: List[Dict], xi: float = 0.0018) -> Optional[Dict]:
+def fit_dixon_coles(results: List[Dict], xi: float = 0.0018, stat_type: str = "goals") -> Optional[Dict]:
     """
     Fit Dixon-Coles parameters using MLE with time-decay weighting.
 
@@ -137,6 +137,8 @@ def fit_dixon_coles(results: List[Dict], xi: float = 0.0018) -> Optional[Dict]:
         - away_team: str
         - home_goals: int
         - away_goals: int
+        - xg_home: float (optional, used if stat_type="xg")
+        - xg_away: float (optional, used if stat_type="xg")
         - days_ago: int  (how many days ago this match was played)
 
     Returns:
@@ -145,7 +147,7 @@ def fit_dixon_coles(results: List[Dict], xi: float = 0.0018) -> Optional[Dict]:
     teams = sorted(set([r["home_team"] for r in results] + [r["away_team"] for r in results]))
     n = len(teams)
     team_idx = {t: i for i, t in enumerate(teams)}
-    logger.info(f"Dixon-Coles fitting: {n} teams, {len(results)} matches, {2*n+2} parameters")
+    logger.info(f"Dixon-Coles fitting ({stat_type}): {n} teams, {len(results)} matches, {2*n+2} parameters")
     t0 = time.perf_counter()
 
     weights = [time_decay_weight(r.get("days_ago", 0), xi) for r in results]
@@ -153,16 +155,29 @@ def fit_dixon_coles(results: List[Dict], xi: float = 0.0018) -> Optional[Dict]:
     
     i_idx = np.array([team_idx[r["home_team"]] for r in results])
     j_idx = np.array([team_idx[r["away_team"]] for r in results])
-    hg = np.array([r["home_goals"] for r in results], dtype=int)
-    ag = np.array([r["away_goals"] for r in results], dtype=int)
     
-    log_k_fact_h = gammaln(hg + 1)
-    log_k_fact_a = gammaln(ag + 1)
+    if stat_type == "xg":
+        hg = np.array([r.get("xg_home") or 0.0 for r in results], dtype=float)
+        ag = np.array([r.get("xg_away") or 0.0 for r in results], dtype=float)
+    else:
+        hg = np.array([r.get("home_goals") or 0 for r in results], dtype=int)
+        ag = np.array([r.get("away_goals") or 0 for r in results], dtype=int)
     
-    mask_00 = (hg == 0) & (ag == 0)
-    mask_10 = (hg == 1) & (ag == 0)
-    mask_01 = (hg == 0) & (ag == 1)
-    mask_11 = (hg == 1) & (ag == 1)
+    # xG needs a slightly different treatment for gammaln if we use raw floats, 
+    # but since DC is traditionally discrete (Poisson), we'll round xG or use it as lambdas.
+    # Actually, Poisson PMF is natively defined for k being integer. 
+    # If using xG as 'goals', we should floor/round them or treat them as lambdas.
+    # For now, let's cast hg/ag to int for the PMF part if they are xG.
+    hg_int = hg.astype(int)
+    ag_int = ag.astype(int)
+    
+    log_k_fact_h = gammaln(hg_int + 1)
+    log_k_fact_a = gammaln(ag_int + 1)
+    
+    mask_00 = (hg_int == 0) & (ag_int == 0)
+    mask_10 = (hg_int == 1) & (ag_int == 0)
+    mask_01 = (hg_int == 0) & (ag_int == 1)
+    mask_11 = (hg_int == 1) & (ag_int == 1)
 
     def neg_log_likelihood(params):
         attack = params[:n]

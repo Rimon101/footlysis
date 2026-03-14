@@ -27,21 +27,22 @@ def _build_prompt(prediction: Dict, analysis: Dict, match_info: Dict) -> str:
         "",
         "Use the statistical data below to write a detailed, insightful pre-match analysis.",
         "Be specific with numbers. Identify key patterns and trends.",
+        "Crucially, look for QUALITATIVE ANOMALIES: Is a key player injured? Is there match congestion? Is a team over-performing their xG significantly?",
         "Structure your response with these sections:",
         "1. **Match Overview** – who is favoured and why (2-3 sentences)",
-        "2. **Form & Momentum** – recent form comparison with specific results",
-        "3. **Key Stats** – xG trends, scoring patterns, defensive records",
-        "4. **Head-to-Head** – historical matchup trends",
+        "2. **Form & Momentum** – recent form comparison with specific results and xG performance",
+        "3. **Tactical & Squad Analysis** – Injury impacts, probable lineups, and style clashes",
+        "4. **Key Stats** – H2H trends, scoring patterns, defensive records",
         "5. **Goals Market** – over/under 2.5 & BTTS analysis with reasoning",
         "6. **Prediction** – your predicted scoreline with confidence reasoning",
-        "7. **Value Insights** – any betting angles the model highlights",
+        "7. **Value Insights** – any betting angles the model highlights or where you disagree with the model",
         "",
-        "─── PREDICTION ENGINE DATA ───",
+        "─── PREDICTION ENGINE DATA (ENSEMBLE) ───",
     ]
 
     # Prediction data
     pred_summary = {
-        "model": prediction.get("model_used", "dixon_coles"),
+        "model": prediction.get("model_used", "ensemble"),
         "home_win_prob": prediction.get("prob_home_win"),
         "draw_prob": prediction.get("prob_draw"),
         "away_win_prob": prediction.get("prob_away_win"),
@@ -55,19 +56,23 @@ def _build_prompt(prediction: Dict, analysis: Dict, match_info: Dict) -> str:
         "confidence": prediction.get("confidence"),
         "home_momentum": prediction.get("home_momentum"),
         "away_momentum": prediction.get("away_momentum"),
-        "home_elo": prediction.get("elo_home"),
+        "elo_home": prediction.get("elo_home"),
         "away_elo": prediction.get("elo_away"),
     }
     sections.append(json.dumps(pred_summary, indent=2))
 
     # Form data
     if prediction.get("home_form"):
-        sections.append("\n─── HOME TEAM FORM ───")
+        sections.append("\n─── HOME TEAM FORM & EXTENDED STATS ───")
         sections.append(json.dumps(prediction["home_form"], indent=2, default=str))
     if prediction.get("away_form"):
-        sections.append("\n─── AWAY TEAM FORM ───")
+        sections.append("\n─── AWAY TEAM FORM & EXTENDED STATS ───")
         sections.append(json.dumps(prediction["away_form"], indent=2, default=str))
 
+    # Players & Injuries (if available)
+    # We should look into match_info and prediction for players
+    # This is a placeholder for where we'd add squad data if fetched
+    
     # Value bets
     if prediction.get("value_bets"):
         sections.append("\n─── VALUE BETS (Kelly Criterion) ───")
@@ -75,7 +80,7 @@ def _build_prompt(prediction: Dict, analysis: Dict, match_info: Dict) -> str:
 
     # Analysis data (if available)
     if analysis:
-        sections.append("\n─── PRE-MATCH ANALYSIS DATA ───")
+        sections.append("\n─── HISTORICAL DATA & H2H ───")
 
         # H2H
         if analysis.get("h2h_summary"):
@@ -86,34 +91,18 @@ def _build_prompt(prediction: Dict, analysis: Dict, match_info: Dict) -> str:
             if analysis.get(key):
                 sections.append(f"{key}: {analysis[key]}")
 
-        # Records
-        for key in ["home_overall", "away_overall", "home_at_home", "away_at_away",
-                     "home_last5", "away_last5"]:
-            if analysis.get(key):
-                sections.append(f"{key}: {json.dumps(analysis[key])}")
-
-        # Goals distribution
-        for key in ["home_goals_dist", "away_goals_dist"]:
-            if analysis.get(key):
-                sections.append(f"{key}: {json.dumps(analysis[key])}")
-
-        # Streaks
-        for key in ["home_streaks", "away_streaks"]:
-            if analysis.get(key):
-                sections.append(f"{key}: {json.dumps(analysis[key])}")
-
         # Team stats from DB
         for key in ["home_stats", "away_stats"]:
             if analysis.get(key):
                 sections.append(f"{key}: {json.dumps(analysis[key], default=str)}")
 
-        # Shots / corners / cards (summarised)
-        for key in ["home_shots", "away_shots", "home_corners", "away_corners"]:
+        # Availability/Injuries (if fetched into analysis dict)
+        for key in ["home_players", "away_players", "injuries"]:
             if analysis.get(key):
-                sections.append(f"{key}: {json.dumps(analysis[key])}")
+                sections.append(f"{key}: {json.dumps(analysis[key], default=str)}")
 
     sections.append("\n─── END DATA ───")
-    sections.append("\nWrite the analysis now. Use markdown formatting. Be concise but insightful.")
+    sections.append("\nWrite the analysis now. Use markdown formatting. Be critical of the data if you see reasons for deviation.")
     sections.append(
         "\nIMPORTANT: At the very end of your response, on its own line, output exactly this marker "
         "followed by a single-line JSON object (no newlines inside the JSON):\n"
@@ -133,21 +122,14 @@ ANALYST_SYSTEM_PROMPT = (
     "You are an elite professional football analyst AI.\n\n"
     "Your role is to analyze football matches using data, statistics, and tactical knowledge "
     "like a professional analyst working for a football club or betting syndicate.\n\n"
-    "Always base your analysis on football analytics and statistical reasoning.\n\n"
     "Your expertise includes:\n"
-    "1. Team Performance Analysis — Recent form (last 5-10 matches), Home vs Away performance, "
-    "Goals scored and conceded, Possession trends, Shots and shots on target, xG and xGA.\n"
-    "2. Tactical Analysis — Formations, Pressing intensity, Defensive line height, "
-    "Counter attacking ability, Set piece strength.\n"
-    "3. Squad Analysis — Key players, Injuries and suspensions, Player form, Squad depth, Rotation risk.\n"
-    "4. Matchup Analysis — Head to head history, Tactical matchup between teams, "
-    "Weakness exploitation, Style clash (possession vs counter teams).\n"
-    "5. Advanced Metrics — xG, xGA, xPTS, PPDA, Shot creating actions, Possession value.\n"
-    "6. Prediction Modeling — Estimate probabilities for Home win, Draw, Away win, "
-    "Over/Under goals, Both teams to score.\n\n"
-    "Always explain reasoning step by step. Never give random guesses. "
+    "1. xG vs Results — Identify 'lucky' or 'unlucky' streaks where results deviate from underlying performance.\n"
+    "2. Squad Rotation & Injuries — Assess the impact of missing key players (e.g., top scorers, defensive anchors).\n"
+    "3. Tactical Matchups — How do specific styles clash? (e.g., High press vs Team that struggles to build from back).\n"
+    "4. Market Calibration — Compare model probabilities with implied market odds to find value.\n"
+    "5. Motivation & Context — Is it a local derby? A cup final? Late season dead-rubber?\n\n"
     "Always justify predictions using football logic and statistics. "
-    "Be analytical, objective, and data-driven like a professional football data scientist. "
+    "Be analytical, objective, and data-driven. "
     "Never fabricate statistics — only reference data provided to you."
 )
 

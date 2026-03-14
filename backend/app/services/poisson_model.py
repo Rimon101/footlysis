@@ -104,13 +104,17 @@ def estimate_lambdas_from_history(
         return league_home_avg, league_away_avg
 
     # Home team attack and defence
-    home_attack_strength = (sum(home_scored) / len(home_scored)) / league_home_avg
-    home_defence_strength = (sum(home_conceded) / len(home_conceded)) / league_away_avg
-
+    h_avg_scored = sum(home_scored) / max(1, len(home_scored))
+    h_avg_conceded = sum(home_conceded) / max(1, len(home_conceded))
+    home_attack_strength = h_avg_scored / max(0.1, league_home_avg)
+    home_defence_strength = h_avg_conceded / max(0.1, league_away_avg)
+ 
     # Away team attack and defence
-    away_attack_strength = (sum(away_scored) / len(away_scored)) / league_away_avg
-    away_defence_strength = (sum(away_conceded) / len(away_conceded)) / league_home_avg
-
+    a_avg_scored = sum(away_scored) / max(1, len(away_scored))
+    a_avg_conceded = sum(away_conceded) / max(1, len(away_conceded))
+    away_attack_strength = a_avg_scored / max(0.1, league_away_avg)
+    away_defence_strength = a_avg_conceded / max(0.1, league_home_avg)
+ 
     lambda_home = home_attack_strength * away_defence_strength * league_home_avg * (1 + home_advantage)
     lambda_away = away_attack_strength * home_defence_strength * league_away_avg
 

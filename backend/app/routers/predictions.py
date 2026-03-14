@@ -175,6 +175,45 @@ async def generate_prediction(
         if candidates:
             market_odds = candidates
 
+    # Fetch Players & Injuries
+    from app.models.models import Player, TeamStats
+    
+    async def get_players(team_id: int):
+        r = await db.execute(select(Player).where(Player.team_id == team_id))
+        rows = r.scalars().all()
+        return [
+            {
+                "name": p.name,
+                "is_injured": p.is_injured,
+                "is_suspended": p.is_suspended,
+                "xg_per90": p.xg_per90,
+                "xa_per90": p.xa_per90,
+                "position": p.position
+            }
+            for p in rows
+        ]
+        
+    async def get_team_stats(team_id: int):
+        r = await db.execute(select(TeamStats).where(TeamStats.team_id == team_id))
+        stats = r.scalar_one_or_none()
+        if not stats:
+            return None
+        return {
+            "ppda": stats.ppda,
+            "xg_for": stats.xg_for,
+            "xg_against": stats.xg_against,
+            "shots_per_game": stats.shots_per_game
+        }
+
+    home_players, away_players = await asyncio.gather(
+        get_players(match.home_team_id),
+        get_players(match.away_team_id)
+    )
+    home_stats, away_stats = await asyncio.gather(
+        get_team_stats(match.home_team_id),
+        get_team_stats(match.away_team_id)
+    )
+
     # Run CPU-intensive prediction in a thread pool to avoid blocking the event loop
     t0 = time.perf_counter()
     logger.info(f"Generating prediction for match {match.id}: {home_name} vs {away_name}")
@@ -190,6 +229,10 @@ async def generate_prediction(
                 away_team_id=match.away_team_id,
                 home_elo=home_elo,
                 away_elo=away_elo,
+                home_players=home_players,
+                away_players=away_players,
+                home_stats=home_stats,
+                away_stats=away_stats,
                 market_odds=market_odds,
                 historical_results=historical if len(historical) >= 20 else None,
                 model=payload.model,

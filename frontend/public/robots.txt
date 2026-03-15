@@ -8,4 +8,4 @@ Disallow: /scrapes
 Disallow: /standings # optional, if you want to keep results private/internal
 
 # Sitemap location
-Sitemap: https://footlysis.vercel.app/sitemap.xml
+Sitemap: https://footlysis.app/sitemap.xml

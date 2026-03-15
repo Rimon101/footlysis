@@ -77,13 +77,9 @@ async def scrape_api_football_league(league_name: str) -> List[Dict]:
         raise ValueError(f"No API-Football mapping found for league: {league_name}")
 
     # API-Football requires exactly the year the season starts in
-    # e.g., for 2024/2025, the season is "2024"
+    # e.g., for 2025/2026, the season is "2025"
     now = datetime.now(timezone.utc)
-    # The API currently considers 2024 the latest for major leagues played 2024-2025
     season_year = now.year if now.month >= 7 else now.year - 1
-    # Fallback to 2024 if the script tries 2025 too early or 2026
-    if season_year > 2024:
-        season_year = 2024
 
     season_str = f"{season_year}/{season_year + 1}"
 

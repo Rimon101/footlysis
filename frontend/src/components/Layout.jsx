@@ -22,15 +22,12 @@ const linkClass = ({ isActive }) =>
     : 'text-slate-400 hover:text-white hover:bg-white/5'
   }`
 
-import CustomCursor from './CustomCursor'
-
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const close = () => setSidebarOpen(false)
 
   return (
     <div className="flex min-h-screen bg-pitch-dark overflow-hidden">
-      <CustomCursor />
       {/* Mobile backdrop */}
       {sidebarOpen && (
         <div

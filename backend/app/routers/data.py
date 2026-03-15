@@ -378,6 +378,8 @@ async def _run_api_football_scrape(league: str):
 
             inserted = 0
             updated = 0
+            scheduled_new = 0
+            finished_new = 0
             for m in matches:
                 if not m.get("home_team") or not m.get("away_team") or not m.get("match_date"):
                     continue
@@ -430,6 +432,10 @@ async def _run_api_football_scrape(league: str):
                     )
                     db.add(row)
                     inserted += 1
+                    if row.status == "scheduled":
+                        scheduled_new += 1
+                    elif row.status == "finished":
+                        finished_new += 1
 
             await db.commit()
 
@@ -438,7 +444,36 @@ async def _run_api_football_scrape(league: str):
             "completed": datetime.now(timezone.utc).isoformat(),
             "inserted": inserted,
             "updated": updated,
+            "scheduled_new": scheduled_new,
+            "finished_new": finished_new,
         })
+
+        # #region agent log
+        try:
+            import json as _json, time as _time
+            from pathlib import Path as _Path
+            log_path = _Path("debug-2b6c5a.log")
+            payload = {
+                "sessionId": "2b6c5a",
+                "runId": "initial",
+                "hypothesisId": "H1_H2",
+                "location": "backend/app/routers/data.py:_run_api_football_scrape",
+                "message": "api_football_persist_summary",
+                "data": {
+                    "league": league,
+                    "matches_fetched": len(matches),
+                    "inserted": inserted,
+                    "updated": updated,
+                    "scheduled_new": scheduled_new,
+                    "finished_new": finished_new,
+                },
+                "timestamp": int(_time.time() * 1000),
+            }
+            with log_path.open("a", encoding="utf-8") as _f:
+                _f.write(_json.dumps(payload) + "\n")
+        except Exception:
+            pass
+        # #endregion agent log
     except Exception as e:
         _api_football_status[league] = {"status": "error", "error": str(e)}
 

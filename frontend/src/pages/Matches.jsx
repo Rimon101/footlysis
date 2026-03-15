@@ -42,7 +42,38 @@ export default function Matches() {
 
   const { data: upcoming, isLoading: upLoading, error: upError, refetch: refetchUp } = useQuery({
     queryKey: ['matches-upcoming', leagueFilter],
-    queryFn: () => getUpcomingMatches(30, leagueFilter || undefined),
+    queryFn: () => getUpcomingMatches(30, leagueFilter || undefined).then(data => {
+      // #region agent log
+      try {
+        fetch('http://127.0.0.1:7425/ingest/b14748a8-a383-478d-881f-949a3ba0d66a', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Debug-Session-Id': '2b6c5a',
+          },
+          body: JSON.stringify({
+            sessionId: '2b6c5a',
+            runId: 'initial',
+            hypothesisId: 'H3',
+            location: 'frontend/src/pages/Matches.jsx:upcomingQuery',
+            message: 'upcoming_query_result',
+            data: {
+              leagueFilter,
+              count: Array.isArray(data) ? data.length : null,
+              sample: (Array.isArray(data) ? data.slice(0, 3) : []).map(m => ({
+                id: m.id,
+                status: m.status,
+                match_date: m.match_date,
+                league_id: m.league_id,
+              })),
+            },
+            timestamp: Date.now(),
+          }),
+        }).catch(() => { })
+      } catch (e) { }
+      // #endregion agent log
+      return data
+    }),
     enabled: tab === 'upcoming',
   })
 

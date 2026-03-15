@@ -105,7 +105,42 @@ async def upcoming_matches(
     if league_id:
         query = query.where(Match.league_id == league_id)
     result = await db.execute(_with_relations(query))
-    return result.scalars().all()
+    matches = result.scalars().all()
+
+    # #region agent log
+    try:
+        import json as _json, time as _time
+        from pathlib import Path as _Path
+        log_path = _Path("debug-2b6c5a.log")
+        payload = {
+            "sessionId": "2b6c5a",
+            "runId": "initial",
+            "hypothesisId": "H1_H2_H4",
+            "location": "backend/app/routers/matches.py:upcoming_matches",
+            "message": "upcoming_matches_result",
+            "data": {
+                "days": days,
+                "league_id": league_id,
+                "count": len(matches),
+                "sample": [
+                    {
+                        "id": m.id,
+                        "status": m.status,
+                        "match_date": m.match_date.isoformat() if m.match_date else None,
+                        "league_id": m.league_id,
+                    }
+                    for m in matches[:5]
+                ],
+            },
+            "timestamp": int(_time.time() * 1000),
+        }
+        with log_path.open("a", encoding="utf-8") as _f:
+            _f.write(_json.dumps(payload) + "\n")
+    except Exception:
+        pass
+    # #endregion agent log
+
+    return matches
 
 
 @router.get("/{match_id}", response_model=MatchOut)

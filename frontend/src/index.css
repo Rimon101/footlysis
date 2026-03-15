@@ -10,25 +10,7 @@
     margin: 0;
   }
   
-  /* Magnetic Box Cursor */
-  @media (hover: hover) {
-    * { cursor: none !important; }
-    
-    .magnetic-cursor {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 10px;
-      height: 10px;
-      background: rgba(255, 255, 255, 0.95);
-      border-radius: 50%;
-      pointer-events: none;
-      z-index: 10000;
-      opacity: 0;
-      transition: background-color 0.3s ease;
-      will-change: transform, width, height, border-radius;
-    }
-  }
+  /* Removed custom magnetic cursor to restore default system cursor */
 
   ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-track { background: #0a1628; }

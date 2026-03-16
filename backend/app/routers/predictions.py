@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc, and_, or_
+from sqlalchemy.orm import aliased
 from typing import Optional
 from datetime import datetime, timedelta, timezone
 import asyncio
@@ -328,18 +329,41 @@ async def list_predictions(
     offset: int = 0,
     db: AsyncSession = Depends(get_db),
 ):
-    query = select(Prediction).order_by(desc(Prediction.created_at)).offset(offset).limit(limit)
+    # Join matches and teams so we can return team names alongside prediction data.
+    home_team = aliased(Team)
+    away_team = aliased(Team)
+
+    query = (
+        select(Prediction, Match, home_team, away_team)
+        .join(Match, Prediction.match_id == Match.id)
+        .join(home_team, Match.home_team_id == home_team.id)
+        .join(away_team, Match.away_team_id == away_team.id)
+        .order_by(desc(Prediction.created_at))
+        .offset(offset)
+        .limit(limit)
+    )
     result = await db.execute(query)
-    preds = result.scalars().all()
+    rows = result.all()
+
     out = []
-    for pred in preds:
+    for pred, match, ht, at in rows:
         data = {c.name: getattr(pred, c.name) for c in pred.__table__.columns}
         if data.get("score_matrix"):
             try:
                 data["score_matrix"] = json.loads(data["score_matrix"])
             except Exception:
                 pass
+
+        # Enrich with match + team display info for UI
+        data.update(
+            {
+                "match_id": match.id,
+                "home_team_name": ht.name if ht else None,
+                "away_team_name": at.name if at else None,
+            }
+        )
         out.append(data)
+
     return out
 
 

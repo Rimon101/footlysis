@@ -68,13 +68,22 @@ export default function Predictions() {
                   : { label: 'Draw', prob: p.prob_draw, variant: 'yellow' }
 
               return (
-                <Link
+                  <Link
                   key={p.id}
                   to={`/matches/${p.match_id}`}
                   className="glass-card p-5 hover:border-brand-500/30 transition-all block"
                 >
                   <div className="flex flex-col sm:flex-row items-start gap-4">
                     <div className="flex-1 space-y-2">
+                      <div className="flex items-center justify-between text-sm text-white font-semibold">
+                        <span className="truncate text-right flex-1">
+                          {p.home_team_name || 'Home'}
+                        </span>
+                        <span className="mx-2 text-slate-500 text-xs">vs</span>
+                        <span className="truncate flex-1">
+                          {p.away_team_name || 'Away'}
+                        </span>
+                      </div>
                       <div className="flex items-center gap-2">
                         <Badge variant={outcome.variant}>{outcome.label}</Badge>
                         <span className="text-xs font-mono text-white">

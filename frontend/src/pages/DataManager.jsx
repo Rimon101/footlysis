@@ -50,14 +50,15 @@ export default function DataManager() {
     refetchInterval: 5000,
   })
 
+  // Primary "Results" scrape – use free scrapers (Football-Data, Understat, ESPN, FBref)
   const scrapeMut = useMutation({
-    mutationFn: () => triggerApiFootballScrape(selectedLeague),
+    mutationFn: () => triggerScrape(selectedLeague),
     onSuccess: () => {
       addScrapeEntry('results', selectedLeague, 'started')
       setScrapeHistory(getScrapeHistory())
-      toast.success(`Scraping results for ${selectedLeague} via API-Football...`)
+      toast.success(`Scraping results for ${selectedLeague} from free sources...`)
       setTimeout(() => {
-        refetchApiFootballStatus().then(({ data }) => {
+        refetchStatus().then(({ data }) => {
           const s = data?.[selectedLeague]
           if (s) {
             addScrapeEntry('results', selectedLeague, s.status === 'error' ? 'error' : 'completed', s)
@@ -70,7 +71,6 @@ export default function DataManager() {
         })
         qc.invalidateQueries({ queryKey: ['leagues'] })
         qc.invalidateQueries({ queryKey: ['matches-results'] })
-        qc.invalidateQueries({ queryKey: ['matches-upcoming'] })
         qc.invalidateQueries({ queryKey: ['teams'] })
         qc.invalidateQueries({ queryKey: ['dashboard'] })
       }, 3000)
@@ -82,14 +82,15 @@ export default function DataManager() {
     },
   })
 
+  // Primary "Upcoming fixtures" scrape – use ESPN + FBref scraper
   const fixtureMut = useMutation({
-    mutationFn: () => triggerApiFootballScrape(selectedLeague),
+    mutationFn: () => triggerFixtureScrape(selectedLeague),
     onSuccess: () => {
       addScrapeEntry('fixtures', selectedLeague, 'started')
       setScrapeHistory(getScrapeHistory())
-      toast.success(`Scraping fixtures for ${selectedLeague} via API-Football...`)
+      toast.success(`Scraping fixtures for ${selectedLeague} from free sources...`)
       setTimeout(() => {
-        refetchApiFootballStatus().then(({ data }) => {
+        refetchFixtureStatus().then(({ data }) => {
           const s = data?.[selectedLeague]
           if (s) {
             addScrapeEntry('fixtures', selectedLeague, s.status === 'error' ? 'error' : 'completed', s)
@@ -227,8 +228,8 @@ export default function DataManager() {
             <div className="text-xs text-slate-400 bg-white/5 rounded-lg p-3">
               <strong className="text-white">What gets scraped:</strong>
               <ul className="mt-1 space-y-0.5 list-disc list-inside">
-                <li><strong>Results:</strong> Past results for the current season, halftone scores, and status from API-Football.</li>
-                <li><strong>Upcoming:</strong> Future scheduled matches and dates from API-Football.</li>
+                <li><strong>Results:</strong> Past results, odds and stats from Football-Data.co.uk, xG from Understat, plus ESPN/FBref where available.</li>
+                <li><strong>Upcoming:</strong> Future scheduled matches and dates from ESPN and FBref fixtures pages (next 30 days).</li>
               </ul>
             </div>
             <button

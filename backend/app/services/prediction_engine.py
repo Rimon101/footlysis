@@ -307,8 +307,38 @@ def predict_match(
     value_bets = evaluate_value_bets(final_probs, market_odds, bankroll) if market_odds else []
 
     # ── 9. Confidence Score ─────────────────────────────────────────────
-    consensus = 1.0 - (abs(p_h - elo_home_p) + abs(p_h - (market_probs["home"] if market_probs else p_h))) / 2.0
-    confidence = round(max(10, min(95, consensus * 100)), 1)
+    # Base signal: how decisive the main probabilities are
+    max_p = max(p_h, p_d, p_a)
+    min_p = min(p_h, p_d, p_a)
+    spread = max_p - min_p  # 0 (totally flat) -> ~0.7 (very decisive)
+
+    # Normalise spread to 0–1 where 0 means 33/33/33, 1 means one side is near 100%
+    spread_component = max(0.0, min(1.0, (spread - 0.05) / 0.65))
+
+    # Agreement with Elo
+    elo_disagreement = (abs(p_h - elo_home_p) + abs(p_d - elo_draw_p) + abs(p_a - elo_away_p)) / 3.0
+    elo_component = 1.0 - max(0.0, min(1.0, elo_disagreement / 0.5))
+
+    # Agreement with market (if available)
+    if market_probs:
+        m_home = market_probs["home"]
+        m_draw = market_probs["draw"]
+        m_away = market_probs["away"]
+        m_disagreement = (abs(p_h - m_home) + abs(p_d - m_draw) + abs(p_a - m_away)) / 3.0
+        market_component = 1.0 - max(0.0, min(1.0, m_disagreement / 0.5))
+    else:
+        market_component = 0.5  # neutral when no market data
+
+    # Combine components (weighted)
+    raw_conf = (
+        0.5 * spread_component +
+        0.25 * elo_component +
+        0.25 * market_component
+    )
+    raw_conf = max(0.0, min(1.0, raw_conf))
+
+    # Map to a user-friendly 20–95% range
+    confidence = round(20 + raw_conf * 75, 1)
 
     elapsed = time.perf_counter() - t0
     logger.info(f"predict_match (Phase 2) completed in {elapsed:.2f}s")

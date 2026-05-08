@@ -194,17 +194,58 @@ async def generate_prediction(
             for p in rows
         ]
         
+    def _encode_form(form: Optional[str], prefix: str) -> dict:
+        wins = draws = losses = 0
+        if form:
+            for ch in form.upper():
+                if ch == "W":
+                    wins += 1
+                elif ch == "D":
+                    draws += 1
+                elif ch == "L":
+                    losses += 1
+        total = wins + draws + losses
+        points = wins * 3 + draws
+        avg_points = points / total if total else 0.0
+        return {
+            f"{prefix}_wins": wins,
+            f"{prefix}_draws": draws,
+            f"{prefix}_losses": losses,
+            f"{prefix}_points": points,
+            f"{prefix}_avg_points": avg_points,
+        }
+
     async def get_team_stats(team_id: int):
         r = await db.execute(select(TeamStats).where(TeamStats.team_id == team_id))
         stats = r.scalar_one_or_none()
         if not stats:
             return None
-        return {
+        payload = {
             "ppda": stats.ppda,
+            "goals_scored": stats.goals_scored,
+            "goals_conceded": stats.goals_conceded,
             "xg_for": stats.xg_for,
             "xg_against": stats.xg_against,
-            "shots_per_game": stats.shots_per_game
+            "shots_per_game": stats.shots_per_game,
+            "shots_on_target_pct": stats.shots_on_target_pct,
+            "big_chances_created": stats.big_chances_created,
+            "shot_conversion_rate": stats.shot_conversion_rate,
+            "clean_sheet_pct": stats.clean_sheet_pct,
+            "btts_pct": stats.btts_pct,
+            "home_goals_scored": stats.home_goals_scored,
+            "home_goals_conceded": stats.home_goals_conceded,
+            "away_goals_scored": stats.away_goals_scored,
+            "away_goals_conceded": stats.away_goals_conceded,
+            "rolling5_xg_for": stats.rolling5_xg_for,
+            "rolling5_xg_against": stats.rolling5_xg_against,
+            "rolling10_xg_for": stats.rolling10_xg_for,
+            "rolling10_xg_against": stats.rolling10_xg_against,
+            "matches_played": stats.matches_played,
+            "points": stats.points,
         }
+        payload.update(_encode_form(stats.form_last_5, "form5"))
+        payload.update(_encode_form(stats.form_last_10, "form10"))
+        return payload
 
     home_players, away_players = await asyncio.gather(
         get_players(match.home_team_id),

@@ -20,6 +20,7 @@ from app.services.poisson_model import (
 )
 from app.services.kelly_criterion import evaluate_value_bets
 from app.services.form_calculator import calculate_team_form, momentum_score
+from app.services.model_inference import predict_1x2_probs
 
 
 def calculate_squad_impact(players: List[Dict]) -> float:
@@ -84,6 +85,20 @@ def calculate_market_probabilities(odds: Dict) -> Optional[Dict]:
         "draw": d_idx / total,
         "away": a_idx / total
     }
+
+
+def _calculate_implied_pair(odds_a: Optional[float], odds_b: Optional[float]) -> Optional[Dict]:
+    if not odds_a or not odds_b:
+        return None
+    try:
+        inv_a = 1.0 / odds_a
+        inv_b = 1.0 / odds_b
+        total = inv_a + inv_b
+        if total <= 0:
+            return None
+        return {"a": inv_a / total, "b": inv_b / total}
+    except Exception:
+        return None
 
 
 def calculate_league_averages(historical_results: List[Dict]) -> Tuple[float, float]:
@@ -233,6 +248,20 @@ def predict_match(
     # ── 4. Elo & Market ───────────────────────────────────────────────────
     elo_home_p, elo_draw_p, elo_away_p = elo_win_probability(home_elo, away_elo)
     market_probs = calculate_market_probabilities(market_odds)
+    if market_odds is not None:
+        market_odds = dict(market_odds)
+        if market_probs:
+            market_odds["imp_home"] = market_probs["home"]
+            market_odds["imp_draw"] = market_probs["draw"]
+            market_odds["imp_away"] = market_probs["away"]
+        ou_probs = _calculate_implied_pair(market_odds.get("over25"), market_odds.get("under25"))
+        if ou_probs:
+            market_odds["imp_over25"] = ou_probs["a"]
+            market_odds["imp_under25"] = ou_probs["b"]
+        btts_probs = _calculate_implied_pair(market_odds.get("btts"), market_odds.get("btts_no"))
+        if btts_probs:
+            market_odds["imp_btts_yes"] = btts_probs["a"]
+            market_odds["imp_btts_no"] = btts_probs["b"]
 
     # ── 5. Blending (Phase 2 Weights) ─────────────────────────────────────
     w_market = 0.10 if market_probs else 0.0
@@ -289,6 +318,23 @@ def predict_match(
         p_h, p_d, p_a = blend_home/total, blend_draw/total, blend_away/total
     else:
         p_h, p_d, p_a = 0.33, 0.34, 0.33
+
+    # Optional ML blend (XGBoost). Safe fallback if model artifacts are not present.
+    ml_probs = predict_1x2_probs(
+        home_elo=home_elo,
+        away_elo=away_elo,
+        home_stats=home_stats,
+        away_stats=away_stats,
+        market_odds=market_odds,
+    )
+    if ml_probs:
+        ml_w = 0.40
+        p_h = (1 - ml_w) * p_h + ml_w * ml_probs["prob_home_win"]
+        p_d = (1 - ml_w) * p_d + ml_w * ml_probs["prob_draw"]
+        p_a = (1 - ml_w) * p_a + ml_w * ml_probs["prob_away_win"]
+        renorm = p_h + p_d + p_a
+        if renorm > 0:
+            p_h, p_d, p_a = p_h / renorm, p_d / renorm, p_a / renorm
 
     # Secondary markets: blend xG and Goal model outputs
     div = (w_xg + w_goals)
@@ -361,6 +407,7 @@ def predict_match(
         "elo_home": elo_home_p,
         "elo_draw": elo_draw_p,
         "elo_away": elo_away_p,
+        "ml_blend_active": bool(ml_probs),
         "value_bets": value_bets,
         "generated_at": datetime.now(timezone.utc).isoformat(),
     }

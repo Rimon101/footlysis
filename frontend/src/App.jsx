@@ -32,7 +32,12 @@ export default function App() {
         <Toaster
           position="top-right"
           toastOptions={{
-            style: { background: '#0f2044', color: '#fff', border: '1px solid rgba(255,255,255,0.1)' },
+            style: {
+              background: 'linear-gradient(180deg, #15203d 0%, #0b1121 100%)',
+              color: '#e5e7eb',
+              border: '1px solid rgba(129,140,248,0.35)',
+              boxShadow: '0 12px 30px rgba(0,0,0,0.35)',
+            },
           }}
         />
         <Suspense fallback={<div className="flex items-center justify-center min-h-screen text-slate-400">Loading...</div>}>

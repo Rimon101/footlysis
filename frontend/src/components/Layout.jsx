@@ -38,13 +38,13 @@ export default function Layout() {
 
       {/* Sidebar */}
       <aside className={`
-        fixed inset-y-0 left-0 z-30 w-64 flex-shrink-0 bg-pitch-dark border-r border-white/10 flex flex-col
+        fixed inset-y-0 left-0 z-30 w-64 flex-shrink-0 bg-[#070b18]/95 backdrop-blur-xl border-r border-indigo-300/15 flex flex-col
         transition-transform duration-200 ease-in-out
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
         lg:relative lg:translate-x-0
       `}>
         {/* Logo */}
-        <div className="p-5 border-b border-white/10">
+        <div className="p-5 border-b border-indigo-200/10">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden">
@@ -52,7 +52,7 @@ export default function Layout() {
               </div>
               <div>
                 <div className="font-bold text-white text-lg leading-none">Footlysis</div>
-                <div className="text-xs text-slate-500 mt-0.5">Pro Analytics</div>
+                <div className="text-xs text-slate-400 mt-0.5">Pro Analytics</div>
               </div>
             </div>
             <button
@@ -75,7 +75,7 @@ export default function Layout() {
         </nav>
 
         {/* Bottom */}
-        <div className="p-4 border-t border-white/10">
+        <div className="p-4 border-t border-indigo-200/10">
           <div className="glass-card p-3">
             <div className="text-xs text-slate-400">Model Active</div>
             <div className="text-sm font-semibold text-brand-400 mt-0.5">Dixon-Coles v1</div>
@@ -90,7 +90,7 @@ export default function Layout() {
       {/* Main content wrapper */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Mobile top bar */}
-        <header className="lg:hidden flex items-center gap-3 px-4 py-3 border-b border-white/10 bg-pitch-dark sticky top-0 z-10">
+        <header className="lg:hidden flex items-center gap-3 px-4 py-3 border-b border-indigo-200/10 bg-[#070b18]/95 backdrop-blur-xl sticky top-0 z-10">
           <button
             className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition-colors"
             onClick={() => setSidebarOpen(true)}

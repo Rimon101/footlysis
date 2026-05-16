@@ -6,8 +6,7 @@ import Layout from './components/Layout'
 import Dashboard from './pages/Dashboard'
 import Matches from './pages/Matches'
 import MatchDetail from './pages/MatchDetail'
-import Teams from './pages/Teams'
-import TeamDetail from './pages/TeamDetail'
+import Blogs from './pages/Blogs'
 import Predictions from './pages/Predictions'
 
 import Standings from './pages/Standings'
@@ -46,8 +45,7 @@ export default function App() {
               <Route path="/" element={<Dashboard />} />
               <Route path="/matches" element={<Matches />} />
               <Route path="/matches/:id" element={<MatchDetail />} />
-              <Route path="/teams" element={<Teams />} />
-              <Route path="/teams/:id" element={<TeamDetail />} />
+              <Route path="/blogs" element={<Blogs />} />
               <Route path="/predictions" element={<Predictions />} />
 
               <Route path="/standings" element={<Standings />} />

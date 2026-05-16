@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Outlet, NavLink } from 'react-router-dom'
 import {
-  LayoutDashboard, Calendar, Users, TrendingUp,
+  LayoutDashboard, Calendar, BookOpen, TrendingUp,
   BarChart2, Table2, Database, Activity, History, Menu, X
 } from 'lucide-react'
 
@@ -10,7 +10,7 @@ const nav = [
   { to: '/matches', label: 'Matches', icon: Calendar },
   { to: '/predictions', label: 'Predictions', icon: TrendingUp },
   { to: '/scrapes', label: 'Scrapes', icon: History },
-  { to: '/teams', label: 'Teams', icon: Users },
+  { to: '/blogs', label: 'Blogs', icon: BookOpen },
   { to: '/standings', label: 'Standings', icon: Table2 },
 
   { to: '/data', label: 'Data Manager', icon: Database },

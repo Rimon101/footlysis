@@ -85,8 +85,8 @@ export default function Matches() {
       />
 
       {/* Tabs */}
-      <div className="flex items-center justify-between">
-        <div className="flex gap-1 p-1 bg-white/5 rounded-lg w-fit">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="flex gap-1 p-1 bg-white/[0.04] rounded-lg w-fit border border-white/[0.06]">
           {[
             { key: 'results', label: 'Results' },
             { key: 'upcoming', label: 'Upcoming' },
@@ -94,8 +94,11 @@ export default function Matches() {
             <button
               key={t.key}
               onClick={() => handleTabChange(t.key)}
-              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${tab === t.key ? 'bg-brand-500 text-white' : 'text-slate-400 hover:text-white'
-                }`}
+              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
+                tab === t.key
+                  ? 'bg-brand-500/15 text-brand-500 border border-brand-500/30'
+                  : 'text-slate-400 hover:text-white border border-transparent'
+              }`}
             >
               {t.label}
               {t.key === 'results' && results?.length > 0 && (
@@ -113,18 +116,18 @@ export default function Matches() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+      <div className="flex flex-wrap gap-2 sm:gap-3">
+        <div className="relative flex-1 sm:flex-none min-w-0">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
           <input
-            className="pl-9 pr-4 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-brand-500/50 w-full sm:w-52"
+            className="w-full pl-9 pr-4 py-2 bg-white/[0.04] border border-white/[0.08] rounded-lg text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-brand-500/50 sm:w-52"
             placeholder="Search team name..."
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
         </div>
         <select
-          className="px-3 py-2 bg-[#0f1d32] border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:border-brand-500/50"
+          className="flex-1 sm:flex-none px-3 py-2 bg-surface-deep border border-white/[0.08] rounded-lg text-sm text-white focus:outline-none focus:border-brand-500/50 min-w-0"
           value={leagueFilter}
           onChange={e => { setLeagueFilter(e.target.value); setPage(0) }}
         >
@@ -148,7 +151,7 @@ export default function Matches() {
           </div>
           <div className="text-slate-500 text-sm mt-1 max-w-xs mx-auto">
             {tab === 'upcoming'
-              ? <>No upcoming fixtures found. Use <Link to="/settings" className="text-brand-400 underline">Settings</Link> to scrape fixtures for your leagues.</>
+              ? <>No upcoming fixtures found. Use <Link to="/settings" className="text-brand-500 underline">Settings</Link> to scrape fixtures for your leagues.</>
               : 'Scrape data first from Settings, then come back here.'}
           </div>
           {tab === 'upcoming' && (
@@ -169,39 +172,49 @@ export default function Matches() {
               <Link
                 key={m.id}
                 to={`/matches/${m.id}`}
-                className="glass-card p-4 flex items-center gap-4 hover:border-brand-500/30 transition-all duration-200 block"
+                className="glass-card p-3 sm:p-4 flex items-center gap-2 sm:gap-4 hover:border-brand-500/30 transition-all duration-200 block"
               >
-                <div className="hidden sm:block text-xs text-slate-500 w-24 flex-shrink-0">
+                {/* sm+ date column */}
+                <div className="hidden sm:block text-xs text-slate-500 w-24 flex-shrink-0 font-data">
                   {m.match_date ? utcDate(m.match_date).toLocaleDateString('en-GB', {
                     day: '2-digit', month: 'short', year: 'numeric'
                   }) : '—'}
                 </div>
                 <div className="flex-1 flex items-center gap-3 min-w-0">
-                  <span className="text-sm font-semibold text-white text-right flex-1 truncate">
-                    {m.home_team?.name || `Team #${m.home_team_id}`}
-                  </span>
-                  <div className="text-center min-w-[60px]">
-                    {m.home_goals != null ? (
-                      <span className="font-mono font-bold text-lg text-white">
-                        {m.home_goals} - {m.away_goals}
+                  <div className="flex-1 min-w-0">
+                    <div className="sm:hidden text-[10px] text-slate-500 font-data mb-0.5">
+                      {m.match_date ? utcDate(m.match_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : '—'}
+                      {m.league && <span className="ml-2 text-slate-600">· {m.league.name}</span>}
+                    </div>
+                    <div className="flex items-center gap-2 justify-end">
+                      <span className="text-sm font-display font-semibold text-white text-right truncate">
+                        {m.home_team?.name || `Team #${m.home_team_id}`}
                       </span>
-                    ) : (
-                      <span className="text-slate-500 text-sm">vs</span>
-                    )}
+                    </div>
+                    <div className="text-center my-1">
+                      {m.home_goals != null ? (
+                        <span className="font-data font-bold text-base sm:text-lg text-white">
+                          {m.home_goals} - {m.away_goals}
+                        </span>
+                      ) : (
+                        <span className="text-slate-500 text-xs uppercase tracking-wider">vs</span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-display font-semibold text-white truncate">
+                        {m.away_team?.name || `Team #${m.away_team_id}`}
+                      </span>
+                    </div>
                   </div>
-                  <span className="text-sm font-semibold text-white flex-1 truncate">
-                    {m.away_team?.name || `Team #${m.away_team_id}`}
-                  </span>
                 </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  {m.league && <span className="text-xs text-slate-500 hidden md:block">{m.league.name}</span>}
+                <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                  {m.league && <span className="text-[10px] text-slate-500 hidden md:block truncate max-w-[120px]">{m.league.name}</span>}
                   {resultBadge(m.home_goals, m.away_goals)}
                   {m.xg_home != null && (
-                    <span className="text-xs text-slate-500 font-mono hidden lg:block">
+                    <span className="text-[10px] text-slate-500 font-data hidden lg:block">
                       xG {m.xg_home?.toFixed(1)}-{m.xg_away?.toFixed(1)}
                     </span>
                   )}
-                  <ChevronRight className="w-4 h-4 text-slate-500" />
                 </div>
               </Link>
             ))}

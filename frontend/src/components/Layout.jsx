@@ -2,14 +2,16 @@ import { useState } from 'react'
 import { Outlet, NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, Calendar, TrendingUp,
-  Table2, Settings2, Menu, X, Zap
+  Table2, BookOpen, Settings2, Menu, X, Zap
 } from 'lucide-react'
+import MobileNav from './MobileNav'
 
 const mainNav = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/matches', label: 'Matches', icon: Calendar },
   { to: '/predictions', label: 'Predictions', icon: TrendingUp },
   { to: '/standings', label: 'Standings', icon: Table2 },
+  { to: '/blogs', label: 'Blogs', icon: BookOpen },
 ]
 
 const bottomNav = [
@@ -25,7 +27,7 @@ function NavItem({ to, label, icon: Icon, end, onClick }) {
       className={({ isActive }) =>
         `group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 relative ${
           isActive
-            ? 'bg-brand-500/12 text-brand-400'
+            ? 'bg-brand-500/12 text-brand-500'
             : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]'
         }`
       }
@@ -54,7 +56,7 @@ export default function Layout() {
   const close = () => setSidebarOpen(false)
 
   return (
-    <div className="flex min-h-screen bg-pitch-dark overflow-hidden">
+    <div className="flex min-h-screen bg-surface-base overflow-hidden">
       {/* Skip to content — accessibility */}
       <a href="#main-content" className="skip-to-content">Skip to content</a>
 
@@ -71,8 +73,7 @@ export default function Layout() {
       <aside
         className={`
           fixed inset-y-0 left-0 z-30 w-[260px] flex-shrink-0 flex flex-col
-          bg-gradient-to-b from-[#060d1f] via-[#070e20] to-[#040a18]
-          border-r border-white/[0.06]
+          bg-surface-base border-r border-white/[0.08]
           transition-transform duration-300 ease-out
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
           lg:relative lg:translate-x-0
@@ -84,12 +85,12 @@ export default function Layout() {
         <div className="p-5 pb-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-brand-500/15 border border-brand-500/20 flex items-center justify-center overflow-hidden">
+              <div className="w-9 h-9 rounded-xl bg-brand-500/15 border border-brand-500/30 flex items-center justify-center overflow-hidden shadow-glow-cyan-sm">
                 <img src="/logo.png" alt="Footlysis Logo" className="w-full h-full object-cover" />
               </div>
               <div>
-                <div className="font-bold text-white text-lg leading-none tracking-tight">Footlysis</div>
-                <div className="text-[11px] text-brand-400 font-medium mt-0.5 tracking-wide">PRO ANALYTICS</div>
+                <div className="font-display font-bold text-white text-lg leading-none tracking-tight">Footlysis</div>
+                <div className="text-[11px] text-brand-500 font-medium mt-0.5 tracking-wide">PRO ANALYTICS</div>
               </div>
             </div>
             <button
@@ -102,8 +103,8 @@ export default function Layout() {
           </div>
         </div>
 
-        {/* Divider with glow */}
-        <div className="mx-4 h-px bg-gradient-to-r from-transparent via-brand-500/20 to-transparent" />
+        {/* Divider with cyan glow */}
+        <div className="mx-4 h-px bg-gradient-to-r from-transparent via-brand-500/30 to-transparent" />
 
         {/* Nav */}
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto mt-2">
@@ -123,10 +124,10 @@ export default function Layout() {
         <div className="p-4">
           <div className="glass-card p-3.5">
             <div className="flex items-center gap-2 mb-2">
-              <Zap className="w-3.5 h-3.5 text-brand-400" />
+              <Zap className="w-3.5 h-3.5 text-brand-500" />
               <span className="text-[11px] text-slate-400 uppercase tracking-wider font-medium">Model</span>
             </div>
-            <div className="text-sm font-semibold text-white">Dixon-Coles v1</div>
+            <div className="text-sm font-display font-semibold text-white">Dixon-Coles v1</div>
             <div className="flex gap-1.5 mt-2">
               <span className="stat-badge form-W text-[10px] py-0.5">Poisson</span>
               <span className="stat-badge form-W text-[10px] py-0.5">Elo</span>
@@ -138,7 +139,7 @@ export default function Layout() {
       {/* Main content wrapper */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Mobile top bar */}
-        <header className="lg:hidden flex items-center gap-3 px-4 py-3 border-b border-white/[0.06] bg-pitch-dark/95 backdrop-blur-xl sticky top-0 z-10">
+        <header className="lg:hidden flex items-center gap-3 px-4 py-3 border-b border-white/[0.06] bg-surface-base/95 backdrop-blur-xl sticky top-0 z-10">
           <button
             className="text-slate-400 hover:text-white p-2 rounded-xl hover:bg-white/10 transition-colors"
             onClick={() => setSidebarOpen(true)}
@@ -150,17 +151,20 @@ export default function Layout() {
             <div className="w-6 h-6 rounded-lg overflow-hidden">
               <img src="/logo.png" alt="Footlysis Logo" className="w-full h-full object-cover" />
             </div>
-            <span className="font-bold text-white text-sm tracking-tight">Footlysis</span>
+            <span className="font-display font-bold text-white text-sm tracking-tight">Footlysis</span>
           </div>
         </header>
 
-        {/* Page content */}
-        <main id="main-content" className="flex-1 overflow-auto">
+        {/* Page content — pb-20 on mobile to clear the bottom nav */}
+        <main id="main-content" className="flex-1 overflow-auto pb-20 lg:pb-0">
           <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
             <Outlet />
           </div>
         </main>
       </div>
+
+      {/* Mobile bottom nav */}
+      <MobileNav />
     </div>
   )
 }

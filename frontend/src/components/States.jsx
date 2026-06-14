@@ -1,7 +1,7 @@
-import { RefreshCw, AlertTriangle } from 'lucide-react'
+import { RefreshCw, AlertTriangle, Inbox } from 'lucide-react'
 
 /* ═══════════════════════════════════════════════════════════════════════ */
-/*  SPINNER                                                                */
+/*  SPINNER — Insight Elite                                                */
 /* ═══════════════════════════════════════════════════════════════════════ */
 
 export function Spinner({ size = 'md' }) {
@@ -49,7 +49,10 @@ export function LoadingState({ message = 'Loading...' }) {
       <div className="flex flex-col items-center justify-center py-16 gap-4">
         <div className="relative">
           <div className="w-10 h-10 border-2 border-brand-500/20 border-t-brand-500 rounded-full animate-spin" />
-          <div className="absolute inset-0 w-10 h-10 border-2 border-transparent border-b-brand-300/30 rounded-full animate-spin" style={{ animationDirection: 'reverse', animationDuration: '1.5s' }} />
+          <div
+            className="absolute inset-0 w-10 h-10 border-2 border-transparent border-b-brand-300/30 rounded-full animate-spin"
+            style={{ animationDirection: 'reverse', animationDuration: '1.5s' }}
+          />
         </div>
         <span className="text-slate-400 text-sm font-medium">{message}</span>
       </div>
@@ -68,7 +71,7 @@ export function ErrorState({ message = 'An error occurred', retry }) {
         <AlertTriangle className="w-7 h-7 text-rose-400" />
       </div>
       <div className="text-center">
-        <div className="text-slate-200 font-semibold">{message}</div>
+        <div className="text-slate-200 font-display font-semibold">{message}</div>
         <div className="text-slate-400 text-sm mt-1">Please try again or check your connection.</div>
       </div>
       {retry && (
@@ -89,11 +92,11 @@ export function ErrorState({ message = 'An error occurred', retry }) {
 /*  EMPTY STATE                                                            */
 /* ═══════════════════════════════════════════════════════════════════════ */
 
-export function EmptyState({ message = 'No data available', icon = '📭' }) {
+export function EmptyState({ message = 'No data available', icon: Icon = Inbox }) {
   return (
     <div className="flex flex-col items-center justify-center py-16 gap-3">
-      <div className="w-14 h-14 rounded-2xl bg-slate-800/50 border border-slate-700/50 flex items-center justify-center text-2xl">
-        {icon}
+      <div className="w-14 h-14 rounded-2xl bg-surface-low border border-white/[0.06] flex items-center justify-center">
+        <Icon className="w-7 h-7 text-slate-500" />
       </div>
       <div className="text-slate-400 text-sm font-medium">{message}</div>
     </div>

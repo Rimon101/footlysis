@@ -27,7 +27,7 @@ const FormBadges = memo(function FormBadges({ form, size = 'sm' }) {
   return (
     <div className="flex gap-1 flex-wrap">
       {form.split('').map((r, i) => (
-        <span key={i} className={`${sz} flex items-center justify-center rounded-md font-bold ${r === 'W' ? 'bg-brand-500/15 text-brand-400' :
+        <span key={i} className={`${sz} flex items-center justify-center rounded-md font-bold ${r === 'W' ? 'bg-lime-500/15 text-lime-500' :
           r === 'D' ? 'bg-amber-500/15 text-amber-400' :
             'bg-rose-500/15 text-rose-400'
           }`}>{r}</span>
@@ -43,11 +43,11 @@ const ComparisonRow = memo(function ComparisonRow({ label, homeVal, awayVal, hig
   const aBetter = hv != null && av != null && (higherIsBetter ? av > hv : av < hv)
   return (
     <div className="flex items-center gap-4 py-1.5">
-      <div className={`flex-1 text-right font-mono text-sm ${hBetter ? 'text-brand-400 font-bold' : 'text-white'}`}>
+      <div className={`flex-1 text-right font-data text-sm ${hBetter ? 'text-lime-500 font-bold' : 'text-white'}`}>
         {hv != null ? `${hv}${suffix}` : '—'}
       </div>
       <div className="w-28 sm:w-32 text-center text-[10px] text-slate-400 uppercase tracking-wider font-medium">{label}</div>
-      <div className={`flex-1 text-left font-mono text-sm ${aBetter ? 'text-brand-400 font-bold' : 'text-white'}`}>
+      <div className={`flex-1 text-left font-data text-sm ${aBetter ? 'text-lime-500 font-bold' : 'text-white'}`}>
         {av != null ? `${av}${suffix}` : '—'}
       </div>
     </div>
@@ -57,7 +57,7 @@ const ComparisonRow = memo(function ComparisonRow({ label, homeVal, awayVal, hig
 const MiniStat = memo(function MiniStat({ label, value, sub }) {
   return (
     <div className="bg-white/[0.04] rounded-xl p-3 text-center border border-white/[0.04]">
-      <div className="text-lg font-bold text-white font-mono">{value ?? '—'}</div>
+      <div className="text-lg font-data font-bold text-white">{value ?? '—'}</div>
       <div className="text-[10px] text-slate-400 uppercase tracking-wider font-medium mt-0.5">{label}</div>
       {sub && <div className="text-[10px] text-slate-400 mt-0.5">{sub}</div>}
     </div>
@@ -76,12 +76,12 @@ const RecordBar = memo(function RecordBar({ record, teamName }) {
         <span className="text-slate-400">{record.played} matches</span>
       </div>
       <div className="flex h-2 rounded-full overflow-hidden">
-        <div className="bg-brand-500" style={{ width: `${wPct}%` }} />
+        <div className="bg-lime-500" style={{ width: `${wPct}%` }} />
         <div className="bg-amber-500" style={{ width: `${dPct}%` }} />
-        <div className="bg-red-500" style={{ width: `${100 - wPct - dPct}%` }} />
+        <div className="bg-rose-500" style={{ width: `${100 - wPct - dPct}%` }} />
       </div>
-      <div className="flex justify-between text-[10px] font-medium">
-        <span className="text-brand-400">{record.wins}W ({record.win_pct}%)</span>
+      <div className="flex justify-between text-[10px] font-data font-medium">
+        <span className="text-lime-500">{record.wins}W ({record.win_pct}%)</span>
         <span className="text-amber-400">{record.draws}D ({record.draw_pct}%)</span>
         <span className="text-rose-400">{record.losses}L ({record.loss_pct}%)</span>
       </div>
@@ -89,12 +89,16 @@ const RecordBar = memo(function RecordBar({ record, teamName }) {
   )
 })
 
-const Tab = memo(function Tab({ active, onClick, icon, label }) {
+const Tab = memo(function Tab({ active, onClick, icon, label, accent = 'brand' }) {
+  const activeCls =
+    accent === 'violet'
+      ? 'bg-violet-500/15 text-violet-300 border border-violet-500/30 shadow-sm shadow-violet-500/10'
+      : 'bg-brand-500/15 text-brand-500 border border-brand-500/30 shadow-sm shadow-brand-500/10'
   return (
     <button
       onClick={onClick}
       className={`flex items-center gap-1.5 px-3.5 py-2 text-xs font-medium rounded-xl transition-all whitespace-nowrap ${active
-        ? 'bg-brand-500/12 text-brand-400 border border-brand-500/20 shadow-sm shadow-brand-500/10'
+        ? activeCls
         : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]'
         }`}
     >
@@ -128,22 +132,22 @@ function MatchHistoryTable({ history, teamName, showAll }) {
         )}
       </div>
       <div className="overflow-x-auto -mx-2 px-2">
-        <table className="w-full text-xs">
+        <table className="w-full text-xs table-no-lines">
           <thead>
             <tr className="text-slate-500 border-b border-white/5">
-              <th className="text-left py-1.5 px-1 font-medium">Date</th>
-              <th className="text-center py-1.5 px-1 font-medium w-6">V</th>
-              <th className="text-center py-1.5 px-1 font-medium w-5">R</th>
-              <th className="text-left py-1.5 px-1 font-medium">Opponent</th>
-              <th className="text-center py-1.5 px-1 font-medium">Score</th>
-              <th className="text-center py-1.5 px-1 font-medium">HT</th>
-              <th className="text-center py-1.5 px-1 font-medium">xG</th>
-              <th className="text-center py-1.5 px-1 font-medium">Sh</th>
-              <th className="text-center py-1.5 px-1 font-medium">SoT</th>
-              <th className="text-center py-1.5 px-1 font-medium">Cor</th>
-              <th className="text-center py-1.5 px-1 font-medium">F</th>
-              <th className="text-center py-1.5 px-1 font-medium">YC</th>
-              <th className="text-center py-1.5 px-1 font-medium">RC</th>
+              <th className="text-left py-1.5 px-1 font-bold uppercase tracking-[0.05em] text-[10px]">Date</th>
+              <th className="text-center py-1.5 px-1 font-bold w-6 text-[10px]">V</th>
+              <th className="text-center py-1.5 px-1 font-bold w-5 text-[10px]">R</th>
+              <th className="text-left py-1.5 px-1 font-bold text-[10px]">Opponent</th>
+              <th className="text-center py-1.5 px-1 font-bold text-[10px]">Score</th>
+              <th className="text-center py-1.5 px-1 font-bold text-[10px]">HT</th>
+              <th className="text-center py-1.5 px-1 font-bold text-[10px]">xG</th>
+              <th className="text-center py-1.5 px-1 font-bold text-[10px]">Sh</th>
+              <th className="text-center py-1.5 px-1 font-bold text-[10px]">SoT</th>
+              <th className="text-center py-1.5 px-1 font-bold text-[10px]">Cor</th>
+              <th className="text-center py-1.5 px-1 font-bold text-[10px]">F</th>
+              <th className="text-center py-1.5 px-1 font-bold text-[10px]">YC</th>
+              <th className="text-center py-1.5 px-1 font-bold text-[10px]">RC</th>
             </tr>
           </thead>
           <tbody>
@@ -159,31 +163,31 @@ function MatchHistoryTable({ history, teamName, showAll }) {
               const rFor = m.is_home ? m.red_home : m.red_away
               const htScore = m.ht_home_goals != null ? `${m.ht_home_goals}-${m.ht_away_goals}` : null
               return (
-                <tr key={m.match_id || i} className="border-b border-white/[0.03] hover:bg-white/5">
-                  <td className="py-1.5 px-1 text-slate-500 whitespace-nowrap">
+                <tr key={m.match_id || i} className="hover:bg-white/[0.03]">
+                  <td className="py-1.5 px-1 text-slate-500 whitespace-nowrap font-data">
                     {m.date ? utcDate(m.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }) : '—'}
                   </td>
                   <td className="py-1.5 px-1 text-center">
-                    <span className={`text-[10px] font-bold ${m.venue === 'H' ? 'text-emerald-400' : 'text-blue-400'}`}>{m.venue}</span>
+                    <span className={`text-[10px] font-bold ${m.venue === 'H' ? 'text-brand-500' : 'text-violet-300'}`}>{m.venue}</span>
                   </td>
                   <td className="py-1.5 px-1 text-center">
-                    <span className={`w-5 h-5 inline-flex items-center justify-center rounded text-[10px] font-bold ${m.result === 'W' ? 'bg-emerald-500/20 text-emerald-400' :
+                    <span className={`w-5 h-5 inline-flex items-center justify-center rounded text-[10px] font-bold ${m.result === 'W' ? 'bg-lime-500/20 text-lime-500' :
                       m.result === 'D' ? 'bg-amber-500/20 text-amber-400' :
-                        'bg-red-500/20 text-red-400'
+                        'bg-rose-500/20 text-rose-400'
                       }`}>{m.result}</span>
                   </td>
-                  <td className="py-1.5 px-1 text-white truncate max-w-[120px]">{opponent}</td>
-                  <td className="py-1.5 px-1 text-center font-mono text-white font-medium">{m.goals_for}-{m.goals_against}</td>
-                  <td className="py-1.5 px-1 text-center font-mono text-slate-500">{htScore || '—'}</td>
-                  <td className="py-1.5 px-1 text-center font-mono text-slate-400">
+                  <td className="py-1.5 px-1 text-white truncate max-w-[120px] font-medium">{opponent}</td>
+                  <td className="py-1.5 px-1 text-center font-data text-white font-medium">{m.goals_for}-{m.goals_against}</td>
+                  <td className="py-1.5 px-1 text-center font-data text-slate-500">{htScore || '—'}</td>
+                  <td className="py-1.5 px-1 text-center font-data text-slate-400">
                     {xgFor != null ? `${xgFor.toFixed(1)} -${xgAg?.toFixed(1)} ` : '—'}
                   </td>
-                  <td className="py-1.5 px-1 text-center font-mono text-slate-400">{shFor ?? '—'}</td>
-                  <td className="py-1.5 px-1 text-center font-mono text-slate-400">{sotFor ?? '—'}</td>
-                  <td className="py-1.5 px-1 text-center font-mono text-slate-400">{corFor ?? '—'}</td>
-                  <td className="py-1.5 px-1 text-center font-mono text-slate-400">{fFor ?? '—'}</td>
-                  <td className="py-1.5 px-1 text-center font-mono text-amber-400">{yFor ?? '—'}</td>
-                  <td className="py-1.5 px-1 text-center font-mono text-red-400">{rFor ?? '—'}</td>
+                  <td className="py-1.5 px-1 text-center font-data text-slate-400">{shFor ?? '—'}</td>
+                  <td className="py-1.5 px-1 text-center font-data text-slate-400">{sotFor ?? '—'}</td>
+                  <td className="py-1.5 px-1 text-center font-data text-slate-400">{corFor ?? '—'}</td>
+                  <td className="py-1.5 px-1 text-center font-data text-slate-400">{fFor ?? '—'}</td>
+                  <td className="py-1.5 px-1 text-center font-data text-amber-400">{yFor ?? '—'}</td>
+                  <td className="py-1.5 px-1 text-center font-data text-rose-400">{rFor ?? '—'}</td>
                 </tr>
               )
             })}
@@ -232,7 +236,7 @@ function OverviewPanel({ analysis, home, away }) {
           { label: 'Last 10', hr: a.home_last10, ar: a.away_last10 },
         ].map(({ label, hr, ar }) => (
           <div key={label}>
-            <div className="text-xs text-brand-400 font-semibold mb-2">{label}</div>
+            <div className="text-xs text-lime-500 font-semibold mb-2">{label}</div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <RecordBar record={hr} teamName={home} />
               <RecordBar record={ar} teamName={away} />
@@ -245,9 +249,9 @@ function OverviewPanel({ analysis, home, away }) {
         <div className="glass-card p-5">
           <SectionTitle>Statistical Comparison (All Matches)</SectionTitle>
           <div className="flex items-center gap-4 mb-4">
-            <div className="flex-1 text-right text-sm font-semibold text-brand-400">{home}</div>
+            <div className="flex-1 text-right text-sm font-semibold text-lime-500">{home}</div>
             <div className="w-32 text-center text-xs text-slate-500">VS</div>
-            <div className="flex-1 text-left text-sm font-semibold text-brand-400">{away}</div>
+            <div className="flex-1 text-left text-sm font-semibold text-lime-500">{away}</div>
           </div>
           <div className="divide-y divide-white/5">
             <ComparisonRow label="Avg Goals For" homeVal={a.home_overall?.avg_goals_for} awayVal={a.away_overall?.avg_goals_for} />
@@ -294,8 +298,8 @@ function OverviewPanel({ analysis, home, away }) {
                 <div className="text-sm sm:text-base font-semibold text-white">{name}</div>
                 <div className="grid grid-cols-2 gap-2">
                   {[
-                    { l: 'Win Streak', v: s.current_win_streak, c: 'text-emerald-400' },
-                    { l: 'Unbeaten', v: s.current_unbeaten, c: 'text-emerald-400' },
+                    { l: 'Win Streak', v: s.current_win_streak, c: 'text-lime-500' },
+                    { l: 'Unbeaten', v: s.current_unbeaten, c: 'text-lime-500' },
                     { l: 'Loss Streak', v: s.current_loss_streak, c: 'text-red-400' },
                     { l: 'Winless', v: s.current_winless, c: 'text-red-400' },
                     { l: 'Scoring', v: s.current_scoring, c: 'text-blue-400' },
@@ -305,7 +309,7 @@ function OverviewPanel({ analysis, home, away }) {
                   ].map(({ l, v, c }) => (
                     <div key={l} className="flex justify-between text-xs sm:text-sm bg-white/5 rounded-lg p-2 px-3">
                       <span className="text-slate-400">{l}</span>
-                      <span className={`font-mono font-bold text-base ${c}`}>{v}</span>
+                      <span className={`font-data font-bold text-base ${c}`}>{v}</span>
                     </div>
                   ))}
                 </div>
@@ -342,7 +346,7 @@ function GoalsPanel({ analysis, home, away }) {
                 <div key={label} className="space-y-0.5">
                   <div className="flex justify-between text-[11px]">
                     <span className="text-slate-400">{label}</span>
-                    <span className="text-white font-mono">{val}%</span>
+                    <span className="text-white font-data">{val}%</span>
                   </div>
                   <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
                     <div className="h-full bg-brand-500 rounded-full transition-all" style={{ width: `${val}%` }} />
@@ -362,7 +366,7 @@ function GoalsPanel({ analysis, home, away }) {
             { name: away, rec: a.away_overall },
           ].map(({ name, rec }) => rec && (
             <div key={name} className="text-center p-4 bg-white/5 rounded-lg">
-              <div className="text-2xl font-bold text-white font-mono">{rec.btts_pct}%</div>
+              <div className="text-2xl font-bold text-white font-data">{rec.btts_pct}%</div>
               <div className="text-xs text-slate-400 mt-1">{name}</div>
               <div className="text-[10px] text-slate-500">{rec.btts_count} of {rec.played} matches</div>
             </div>
@@ -378,7 +382,7 @@ function GoalsPanel({ analysis, home, away }) {
             { name: away, rec: a.away_overall },
           ].map(({ name, rec }) => rec && (
             <div key={name} className="text-center p-4 bg-white/5 rounded-lg">
-              <div className="text-2xl font-bold text-white font-mono">{rec.clean_sheet_pct}%</div>
+              <div className="text-2xl font-bold text-white font-data">{rec.clean_sheet_pct}%</div>
               <div className="text-xs text-slate-400 mt-1">{name}</div>
               <div className="text-[10px] text-slate-500">{rec.clean_sheets} of {rec.played} matches</div>
             </div>
@@ -403,7 +407,7 @@ function GoalsPanel({ analysis, home, away }) {
                       <div className="flex-1 h-4 bg-white/5 rounded overflow-hidden">
                         <div className="h-full bg-brand-500/60 rounded" style={{ width: `${(c / (count || 1)) * 100}%` }} />
                       </div>
-                      <span className="text-white font-mono w-6 text-right">{c}</span>
+                      <span className="text-white font-data w-6 text-right">{c}</span>
                     </div>
                   ))}
                 </div>
@@ -449,8 +453,8 @@ function HomeAwayPanel({ analysis, home, away }) {
     return (
       <div className="space-y-2">
         <div className="grid grid-cols-3 gap-2 text-center">
-          <div className="bg-emerald-500/10 rounded p-2">
-            <div className="text-lg font-bold text-emerald-400">{record.wins}</div>
+          <div className="bg-lime-500/10 rounded p-2">
+            <div className="text-lg font-bold text-lime-500">{record.wins}</div>
             <div className="text-[10px] text-slate-400">W</div>
           </div>
           <div className="bg-amber-500/10 rounded p-2">
@@ -483,7 +487,7 @@ function HomeAwayPanel({ analysis, home, away }) {
           ].map(({ l, v }) => (
             <div key={l} className="flex justify-between bg-white/5 rounded p-1.5 px-2">
               <span className="text-slate-400">{l}</span>
-              <span className="text-white font-mono">{v}</span>
+              <span className="text-white font-data">{v}</span>
             </div>
           ))}
         </div>
@@ -497,7 +501,7 @@ function HomeAwayPanel({ analysis, home, away }) {
         <SectionTitle>{home} — Home vs Away Split</SectionTitle>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <div className="text-xs text-emerald-400 font-semibold mb-2 flex items-center gap-1"><Shield className="w-3 h-3" /> Home Record</div>
+            <div className="text-xs text-lime-500 font-semibold mb-2 flex items-center gap-1"><Shield className="w-3 h-3" /> Home Record</div>
             <SplitRecord record={a.home_at_home} />
           </div>
           <div>
@@ -511,7 +515,7 @@ function HomeAwayPanel({ analysis, home, away }) {
         <SectionTitle>{away} — Home vs Away Split</SectionTitle>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <div className="text-xs text-emerald-400 font-semibold mb-2 flex items-center gap-1"><Shield className="w-3 h-3" /> Home Record</div>
+            <div className="text-xs text-lime-500 font-semibold mb-2 flex items-center gap-1"><Shield className="w-3 h-3" /> Home Record</div>
             <SplitRecord record={a.away_at_home} />
           </div>
           <div>
@@ -532,8 +536,8 @@ function HomeAwayPanel({ analysis, home, away }) {
               <div key={name} className="space-y-2">
                 <div className="text-xs font-medium text-white">{name} ({ht.matches_analyzed} matches)</div>
                 <div className="grid grid-cols-3 gap-2 text-center">
-                  <div className="bg-emerald-500/10 rounded p-2">
-                    <div className="text-lg font-bold text-emerald-400">{ht.ht_win_pct}%</div>
+                  <div className="bg-lime-500/10 rounded p-2">
+                    <div className="text-lg font-bold text-lime-500">{ht.ht_win_pct}%</div>
                     <div className="text-[10px] text-slate-400">HT Lead</div>
                   </div>
                   <div className="bg-amber-500/10 rounded p-2">
@@ -566,8 +570,8 @@ function H2HPanel({ analysis, home, away }) {
       <div className="glass-card p-5">
         <SectionTitle>Head to Head Summary ({s.played} matches)</SectionTitle>
         <div className="grid grid-cols-3 sm:grid-cols-5 gap-3 text-center mb-4">
-          <div className="bg-emerald-500/10 rounded-lg p-3">
-            <div className="text-2xl font-bold text-emerald-400">{s.home_wins}</div>
+          <div className="bg-lime-500/10 rounded-lg p-3">
+            <div className="text-2xl font-bold text-lime-500">{s.home_wins}</div>
             <div className="text-[10px] text-slate-400 mt-1">{home} Wins</div>
           </div>
           <div className="bg-amber-500/10 rounded-lg p-3">
@@ -609,9 +613,9 @@ function ShotsPanel({ analysis, home, away }) {
       <div className="glass-card p-5">
         <SectionTitle>Shooting Comparison</SectionTitle>
         <div className="flex items-center gap-4 mb-4">
-          <div className="flex-1 text-right text-sm font-semibold text-brand-400">{home}</div>
+          <div className="flex-1 text-right text-sm font-semibold text-lime-500">{home}</div>
           <div className="w-32 text-center text-xs text-slate-500">VS</div>
-          <div className="flex-1 text-left text-sm font-semibold text-brand-400">{away}</div>
+          <div className="flex-1 text-left text-sm font-semibold text-lime-500">{away}</div>
         </div>
         <div className="divide-y divide-white/5">
           <ComparisonRow label="Avg Shots" homeVal={a.home_shots?.avg_shots} awayVal={a.away_shots?.avg_shots} />
@@ -646,9 +650,9 @@ function CornersPanel({ analysis, home, away }) {
       <div className="glass-card p-5">
         <SectionTitle>Corner Analysis</SectionTitle>
         <div className="flex items-center gap-4 mb-4">
-          <div className="flex-1 text-right text-sm font-semibold text-brand-400">{home}</div>
+          <div className="flex-1 text-right text-sm font-semibold text-lime-500">{home}</div>
           <div className="w-32 text-center text-xs text-slate-500">VS</div>
-          <div className="flex-1 text-left text-sm font-semibold text-brand-400">{away}</div>
+          <div className="flex-1 text-left text-sm font-semibold text-lime-500">{away}</div>
         </div>
         <div className="divide-y divide-white/5">
           <ComparisonRow label="Avg Corners Won" homeVal={a.home_corners?.avg_for} awayVal={a.away_corners?.avg_for} />
@@ -674,7 +678,7 @@ function CornersPanel({ analysis, home, away }) {
                 <div key={label} className="space-y-0.5">
                   <div className="flex justify-between text-[11px]">
                     <span className="text-slate-400">{label}</span>
-                    <span className="text-white font-mono">{val}%</span>
+                    <span className="text-white font-data">{val}%</span>
                   </div>
                   <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
                     <div className="h-full bg-amber-500 rounded-full" style={{ width: `${val}%` }} />
@@ -700,9 +704,9 @@ function CardsPanel({ analysis, home, away }) {
       <div className="glass-card p-5">
         <SectionTitle>Discipline Comparison</SectionTitle>
         <div className="flex items-center gap-4 mb-4">
-          <div className="flex-1 text-right text-sm font-semibold text-brand-400">{home}</div>
+          <div className="flex-1 text-right text-sm font-semibold text-lime-500">{home}</div>
           <div className="w-32 text-center text-xs text-slate-500">VS</div>
-          <div className="flex-1 text-left text-sm font-semibold text-brand-400">{away}</div>
+          <div className="flex-1 text-left text-sm font-semibold text-lime-500">{away}</div>
         </div>
         <div className="divide-y divide-white/5">
           <ComparisonRow label="Avg Yellows" homeVal={a.home_cards?.avg_yellows} awayVal={a.away_cards?.avg_yellows} higherIsBetter={false} />
@@ -805,15 +809,16 @@ function AIAnalysisCards({ sections }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 mb-1">
-        <Brain className="w-5 h-5 text-brand-400" />
-        <h3 className="text-lg font-semibold text-white">AI Analysis</h3>
+        <Brain className="w-5 h-5 text-violet-300" />
+        <h3 className="text-lg font-display font-semibold text-white">AI Analysis</h3>
+        <Badge variant="verified"><Sparkles className="w-3 h-3" /> Verified</Badge>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {sections.map((s, i) => (
-          <div key={i} className="glass-card p-5 space-y-2 hover:border-brand-500/20 transition-colors">
-            <div className="flex items-center gap-2 text-brand-400">
+          <div key={i} className="glass-card p-5 space-y-2 hover:border-violet-500/20 transition-colors">
+            <div className="flex items-center gap-2 text-violet-300">
               {sectionIcon(s.title)}
-              <span className="text-sm font-semibold">{s.title}</span>
+              <span className="text-sm font-display font-semibold">{s.title}</span>
             </div>
             <div className="space-y-1">{renderMarkdownLines(s.lines)}</div>
           </div>
@@ -894,18 +899,18 @@ function AIMatchPredictionChart({ chartData, homeTeam, awayTeam, aiLoading, hasP
 
   const confStyle =
     confidence === 'High'
-      ? 'text-emerald-400 bg-emerald-500/20'
+      ? 'text-violet-300 bg-violet-500/20 border border-violet-500/30'
       : confidence === 'Low'
-        ? 'text-red-400 bg-red-500/20'
-        : 'text-amber-400 bg-amber-500/20'
+        ? 'text-rose-400 bg-rose-500/20 border border-rose-500/30'
+        : 'text-amber-300 bg-amber-500/20 border border-amber-500/30'
 
   return (
     <div className="space-y-4">
       {/* Outcome probability chart */}
-      <div className="glass-card p-5 space-y-4 border border-purple-500/20 bg-gradient-to-br from-purple-500/5 to-transparent">
+      <div className="glass-card p-5 space-y-4 border border-violet-500/20 bg-gradient-to-br from-violet-500/5 to-transparent">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Brain className="w-4 h-4 text-purple-400" />
+            <Brain className="w-4 h-4 text-violet-300" />
             <span className="text-sm font-semibold text-white">AI Outcome Probabilities</span>
           </div>
           <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${confStyle}`}>
@@ -937,7 +942,7 @@ function AIMatchPredictionChart({ chartData, homeTeam, awayTeam, aiLoading, hasP
         </div>
         {predicted_score && (
           <div className="text-center py-1 mb-4">
-            <span className="text-4xl font-black font-mono text-white">{predicted_score}</span>
+            <span className="text-4xl font-black font-data text-white">{predicted_score}</span>
           </div>
         )}
         <div className="space-y-3">
@@ -948,7 +953,7 @@ function AIMatchPredictionChart({ chartData, homeTeam, awayTeam, aiLoading, hasP
             <div key={label} className="space-y-1">
               <div className="flex justify-between text-xs">
                 <span className="text-slate-400">{label}</span>
-                <span className="text-white font-mono font-bold">{pct}%</span>
+                <span className="text-white font-data font-bold">{pct}%</span>
               </div>
               <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
                 <div className={`h-full ${color} rounded-full transition-all duration-700`} style={{ width: `${pct}%` }} />
@@ -994,7 +999,7 @@ function OddsPanel({ analysis, match, home, away }) {
             ].map(o => (
               <div key={o.label} className="bg-white/5 rounded-lg p-4">
                 <div className="text-xs text-slate-400">{o.label}</div>
-                <div className="text-2xl font-bold font-mono text-white mt-1">{o.odds?.toFixed(2) ?? '—'}</div>
+                <div className="text-2xl font-bold font-data text-white mt-1">{o.odds?.toFixed(2) ?? '—'}</div>
                 {o.odds && <div className="text-xs text-slate-500 mt-0.5">{((1 / o.odds) * 100).toFixed(0)}% implied</div>}
               </div>
             ))}
@@ -1003,11 +1008,11 @@ function OddsPanel({ analysis, match, home, away }) {
             <div className="grid grid-cols-2 gap-4 text-center mt-3">
               <div className="bg-white/5 rounded-lg p-3">
                 <div className="text-xs text-slate-400">Over 2.5</div>
-                <div className="text-lg font-bold font-mono text-white mt-1">{match.odds_over25?.toFixed(2) ?? '—'}</div>
+                <div className="text-lg font-bold font-data text-white mt-1">{match.odds_over25?.toFixed(2) ?? '—'}</div>
               </div>
               <div className="bg-white/5 rounded-lg p-3">
                 <div className="text-xs text-slate-400">Under 2.5</div>
-                <div className="text-lg font-bold font-mono text-white mt-1">{match.odds_under25?.toFixed(2) ?? '—'}</div>
+                <div className="text-lg font-bold font-data text-white mt-1">{match.odds_under25?.toFixed(2) ?? '—'}</div>
               </div>
             </div>
           )}
@@ -1027,25 +1032,25 @@ function OddsPanel({ analysis, match, home, away }) {
                 <div className="grid grid-cols-2 gap-1.5 text-[11px]">
                   <div className="flex justify-between bg-white/5 rounded p-1.5 px-2">
                     <span className="text-slate-400">Fav Wins</span>
-                    <span className="text-emerald-400 font-mono">{o.wins_as_favourite}</span>
+                    <span className="text-lime-500 font-data">{o.wins_as_favourite}</span>
                   </div>
                   <div className="flex justify-between bg-white/5 rounded p-1.5 px-2">
                     <span className="text-slate-400">Fav Losses</span>
-                    <span className="text-red-400 font-mono">{o.losses_as_favourite}</span>
+                    <span className="text-red-400 font-data">{o.losses_as_favourite}</span>
                   </div>
                   {o.fav_win_rate != null && (
                     <div className="flex justify-between bg-white/5 rounded p-1.5 px-2 col-span-2">
                       <span className="text-slate-400">Fav Win Rate</span>
-                      <span className="text-white font-mono">{o.fav_win_rate}%</span>
+                      <span className="text-white font-data">{o.fav_win_rate}%</span>
                     </div>
                   )}
                   <div className="flex justify-between bg-white/5 rounded p-1.5 px-2">
                     <span className="text-slate-400">Underdog Wins</span>
-                    <span className="text-emerald-400 font-mono">{o.wins_as_underdog}</span>
+                    <span className="text-lime-500 font-data">{o.wins_as_underdog}</span>
                   </div>
                   <div className="flex justify-between bg-white/5 rounded p-1.5 px-2">
                     <span className="text-slate-400">Underdog Losses</span>
-                    <span className="text-red-400 font-mono">{o.losses_as_underdog}</span>
+                    <span className="text-red-400 font-data">{o.losses_as_underdog}</span>
                   </div>
                 </div>
               </div>
@@ -1062,16 +1067,16 @@ function OddsPanel({ analysis, match, home, away }) {
 /* ═══════════════════════════════════════════════════════════════════════════ */
 
 const TABS = [
-  { key: 'overview', label: 'Overview', icon: <BarChart3 className="w-3.5 h-3.5" /> },
-  { key: 'goals', label: 'Goals & O/U', icon: <Target className="w-3.5 h-3.5" /> },
-  { key: 'homeaway', label: 'Home/Away', icon: <Shield className="w-3.5 h-3.5" /> },
-  { key: 'h2h', label: 'Head to Head', icon: <Activity className="w-3.5 h-3.5" /> },
-  { key: 'shots', label: 'Shots & xG', icon: <TrendingUp className="w-3.5 h-3.5" /> },
-  { key: 'corners', label: 'Corners', icon: <Flag className="w-3.5 h-3.5" /> },
-  { key: 'cards', label: 'Cards', icon: <AlertTriangle className="w-3.5 h-3.5" /> },
-  { key: 'odds', label: 'Odds', icon: <DollarSign className="w-3.5 h-3.5" /> },
-  { key: 'history_home', label: 'Home History', icon: <List className="w-3.5 h-3.5" /> },
-  { key: 'history_away', label: 'Away History', icon: <List className="w-3.5 h-3.5" /> },
+  { key: 'overview',     label: 'Overview',       icon: <BarChart3 className="w-3.5 h-3.5" />, accent: 'brand' },
+  { key: 'goals',        label: 'Goals & O/U',    icon: <Target className="w-3.5 h-3.5" />,    accent: 'brand' },
+  { key: 'homeaway',     label: 'Home/Away',      icon: <Shield className="w-3.5 h-3.5" />,    accent: 'brand' },
+  { key: 'h2h',          label: 'Head to Head',   icon: <Activity className="w-3.5 h-3.5" />,   accent: 'brand' },
+  { key: 'shots',        label: 'Shots & xG',     icon: <TrendingUp className="w-3.5 h-3.5" />, accent: 'brand' },
+  { key: 'corners',      label: 'Corners',        icon: <Flag className="w-3.5 h-3.5" />,      accent: 'brand' },
+  { key: 'cards',        label: 'Cards',          icon: <AlertTriangle className="w-3.5 h-3.5" />, accent: 'brand' },
+  { key: 'odds',         label: 'Odds',           icon: <DollarSign className="w-3.5 h-3.5" />, accent: 'brand' },
+  { key: 'history_home', label: 'Home History',   icon: <List className="w-3.5 h-3.5" />,      accent: 'brand' },
+  { key: 'history_away', label: 'Away History',   icon: <List className="w-3.5 h-3.5" />,      accent: 'brand' },
 ]
 
 export default function MatchDetail() {
@@ -1212,6 +1217,7 @@ export default function MatchDetail() {
   return (
     <div className="space-y-5">
       <PageHeader
+        eyebrow={isFinished ? "RESULT" : "PREVIEW"}
         title={`${home} vs ${away}`}
         subtitle={subtitleParts.filter(Boolean).join(' · ')}
         action={
@@ -1271,7 +1277,7 @@ export default function MatchDetail() {
           </div>
           <div className="text-center min-w-[80px] sm:min-w-[100px]">
             {isFinished ? (
-              <div className="text-4xl font-black font-mono text-white">
+              <div className="text-4xl font-black font-data text-white">
                 {match.home_goals} – {match.away_goals}
               </div>
             ) : (
@@ -1328,6 +1334,7 @@ export default function MatchDetail() {
                 active={activeTab === t.key}
                 onClick={() => setActiveTab(t.key)}
                 icon={t.icon}
+                accent={t.accent}
                 label={t.key === 'history_home' ? `${home.split(' ').slice(-1)} History` :
                   t.key === 'history_away' ? `${away.split(' ').slice(-1)} History` : t.label}
               />
@@ -1448,7 +1455,7 @@ export default function MatchDetail() {
           <AIPredictionCards sections={aiPredSections} />
           <div className="flex justify-end">
             <button
-              className="text-xs text-slate-400 hover:text-brand-400 flex items-center gap-1"
+              className="text-xs text-slate-400 hover:text-lime-500 flex items-center gap-1"
               onClick={handleAIAnalysis}
               disabled={aiLoading}
             >
@@ -1471,11 +1478,11 @@ export default function MatchDetail() {
                 </div>
                 <div className="flex-1 flex items-center gap-3 text-sm">
                   <span className="flex-1 text-right text-white">{m.home_team?.name || `#${m.home_team_id}`}</span>
-                  <span className="font-mono font-bold text-white whitespace-nowrap">{m.home_goals} – {m.away_goals}</span>
+                  <span className="font-data font-bold text-white whitespace-nowrap">{m.home_goals} – {m.away_goals}</span>
                   <span className="flex-1 text-left text-white">{m.away_team?.name || `#${m.away_team_id}`}</span>
                 </div>
                 {m.xg_home != null && (
-                  <div className="text-xs text-slate-500 font-mono">xG {m.xg_home?.toFixed(1)}–{m.xg_away?.toFixed(1)}</div>
+                  <div className="text-xs text-slate-500 font-data">xG {m.xg_home?.toFixed(1)}–{m.xg_away?.toFixed(1)}</div>
                 )}
               </div>
             ))}

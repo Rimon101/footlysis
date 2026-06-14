@@ -172,6 +172,7 @@ export default function DataManager() {
   return (
     <div className="space-y-6">
       <PageHeader
+        eyebrow="OPERATIONS"
         title="Settings"
         subtitle="Import, scrape and maintain football data"
       />
@@ -226,7 +227,7 @@ export default function DataManager() {
       {/* Scraper */}
       <div className="glass-card p-5 space-y-4">
         <div className="flex items-center gap-2">
-          <Download className="w-4 h-4 text-brand-400" />
+          <Download className="w-4 h-4 text-brand-500" />
           <span className="font-semibold text-white">Data Scraper</span>
         </div>
 
@@ -235,7 +236,7 @@ export default function DataManager() {
             <div>
               <label className="text-xs text-slate-400 block mb-1">Select League</label>
               <select
-                className="px-3 py-2 bg-[#0f1d32] border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:border-brand-500/50 w-full max-w-md"
+                className="px-3 py-2 bg-surface-deep border border-white/[0.08] rounded-lg text-sm text-white focus:outline-none focus:border-brand-500/50 w-full max-w-md"
                 value={selectedLeague}
                 onChange={e => setSelectedLeague(e.target.value)}
               >
@@ -359,7 +360,7 @@ export default function DataManager() {
       {/* Recalculate */}
       <div className="glass-card p-5 space-y-4">
         <div className="flex items-center gap-2">
-          <Activity className="w-4 h-4 text-brand-400" />
+          <Activity className="w-4 h-4 text-brand-500" />
           <span className="font-semibold text-white">Model Recalculation</span>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -452,7 +453,7 @@ export default function DataManager() {
       {/* Storage Management */}
       <div className="glass-card p-5">
         <div className="flex items-center gap-2 mb-3">
-          <HardDrive className="w-4 h-4 text-brand-400" />
+          <HardDrive className="w-4 h-4 text-brand-500" />
           <span className="font-semibold text-white">Local Storage</span>
         </div>
         <div className="text-xs text-slate-400 space-y-2">

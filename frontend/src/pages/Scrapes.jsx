@@ -17,7 +17,7 @@ function utcDate(dateStr) {
 }
 
 function statusIcon(status) {
-  if (status === 'completed') return <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+  if (status === 'completed') return <CheckCircle className="w-3.5 h-3.5 text-lime-500" />
   if (status === 'error') return <XCircle className="w-3.5 h-3.5 text-red-400" />
   return <Clock className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
 }
@@ -129,7 +129,7 @@ export default function Scrapes() {
               <div className="text-4xl mb-3">📊</div>
               <div className="text-slate-300 font-medium">No analysis matches yet</div>
               <div className="text-slate-500 text-sm mt-1">
-                Go to a match and click <span className="text-brand-400">"Load Full Analysis"</span> to add it here.
+                Go to a match and click <span className="text-brand-500">"Load Full Analysis"</span> to add it here.
               </div>
             </div>
           ) : (
@@ -151,7 +151,7 @@ export default function Scrapes() {
                     </span>
                     <div className="text-center min-w-[60px]">
                       {m.status === 'finished' ? (
-                        <span className="font-mono font-bold text-lg text-white">
+                        <span className="font-data font-bold text-lg text-white">
                           {m.home_goals} - {m.away_goals}
                         </span>
                       ) : (
@@ -197,7 +197,7 @@ export default function Scrapes() {
               <div className="text-4xl mb-3">📋</div>
               <div className="text-slate-300 font-medium">No scrape history</div>
               <div className="text-slate-500 text-sm mt-1">
-                Scrape data from the <Link to="/data" className="text-brand-400 underline">Data Manager</Link> to see logs here.
+                Scrape data from the <Link to="/data" className="text-brand-500 underline">Data Manager</Link> to see logs here.
               </div>
             </div>
           ) : (

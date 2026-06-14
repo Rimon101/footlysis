@@ -152,7 +152,7 @@ export default function DataManager() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Data Manager"
+        title="Settings"
         subtitle="Import, scrape and maintain football data"
       />
 

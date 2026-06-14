@@ -107,7 +107,7 @@ export default function Dashboard() {
             ? `${localStats.scrapes_last_7_days} this week`
             : 'total runs'}
           color="yellow"
-          link="/scrapes"
+          link="/settings"
         />
         <StatCard
           label="Upcoming"
@@ -126,13 +126,13 @@ export default function Dashboard() {
             <h3 className="text-lg font-semibold text-white">Welcome to Footlysis!</h3>
             <p className="text-sm text-slate-400 max-w-md mx-auto">
               Your dashboard is empty because no data has been scraped yet.
-              Head to the Data Manager to import match data for your favourite leagues.
+              Head to Settings to import match data for your favourite leagues.
             </p>
             <Link
-              to="/data"
+              to="/settings"
               className="btn-primary inline-flex items-center gap-2"
             >
-              <Database className="w-4 h-4" /> Open Data Manager
+              <Database className="w-4 h-4" /> Open Settings
             </Link>
           </div>
         </div>
@@ -146,8 +146,8 @@ export default function Dashboard() {
               <History className="w-4 h-4 text-brand-400" />
               <span className="font-semibold text-sm text-white">Recent Activity</span>
             </div>
-            <Link to="/data" className="text-xs text-brand-400 hover:text-brand-300 flex items-center gap-1">
-              Data Manager <ChevronRight className="w-3 h-3" />
+            <Link to="/settings" className="text-xs text-brand-400 hover:text-brand-300 flex items-center gap-1">
+              Settings <ChevronRight className="w-3 h-3" />
             </Link>
           </div>
           <div className="space-y-1.5">
@@ -190,7 +190,7 @@ export default function Dashboard() {
           </div>
           {upcoming.length === 0 ? (
             <div className="text-slate-400 text-sm text-center py-6">
-              No upcoming matches fetched yet. Add data via Data Manager.
+              No upcoming matches fetched yet. Add data via Settings.
             </div>
           ) : (
             <div className="space-y-2">

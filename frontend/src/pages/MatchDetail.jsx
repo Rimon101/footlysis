@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import { getMatch, generatePrediction, getPredictionForMatch, getH2H, scrapeMatch, getPreMatchAnalysis, enrichMatch, getAIAnalysis } from '../services/api'
-import { addAnalysisMatch, getAnalysisMatchIds, getAIAnalysisCache, setAIAnalysisCache, getAIChartCache, setAIChartCache, getAdClickCount, incrementAdClickCount, resetAdClickCount } from '../services/storage'
+import { addAnalysisMatch, getAnalysisMatchIds, getAIAnalysisCache, setAIAnalysisCache, getAIChartCache, setAIChartCache } from '../services/storage'
 import { LoadingState, ErrorState } from '../components/States'
 import { PageHeader, Badge, StatCard, SectionTitle } from '../components/UI'
 import { PredictionCard } from '../components/PredictionCard'
@@ -22,14 +22,14 @@ function utcDate(dateStr) {
 /* ═══════════════════════════════════════════════════════════════════════════ */
 
 const FormBadges = memo(function FormBadges({ form, size = 'sm' }) {
-  if (!form) return <span className="text-slate-500 text-sm">—</span>
-  const sz = size === 'lg' ? 'w-8 h-8 text-sm sm:w-7 sm:h-7 sm:text-xs' : 'w-6 h-6 text-xs sm:w-5 sm:h-5 sm:text-[11px]'
+  if (!form) return <span className="text-slate-400 text-sm">—</span>
+  const sz = size === 'lg' ? 'w-8 h-8 text-sm sm:w-7 sm:h-7 sm:text-xs' : 'w-7 h-7 text-xs sm:w-6 sm:h-6 sm:text-[11px]'
   return (
     <div className="flex gap-1 flex-wrap">
       {form.split('').map((r, i) => (
-        <span key={i} className={`${sz} flex items-center justify-center rounded font-bold ${r === 'W' ? 'bg-emerald-500/20 text-emerald-400' :
-          r === 'D' ? 'bg-amber-500/20 text-amber-400' :
-            'bg-red-500/20 text-red-400'
+        <span key={i} className={`${sz} flex items-center justify-center rounded-md font-bold ${r === 'W' ? 'bg-brand-500/15 text-brand-400' :
+          r === 'D' ? 'bg-amber-500/15 text-amber-400' :
+            'bg-rose-500/15 text-rose-400'
           }`}>{r}</span>
       ))}
     </div>
@@ -43,11 +43,11 @@ const ComparisonRow = memo(function ComparisonRow({ label, homeVal, awayVal, hig
   const aBetter = hv != null && av != null && (higherIsBetter ? av > hv : av < hv)
   return (
     <div className="flex items-center gap-4 py-1.5">
-      <div className={`flex-1 text-right font-mono text-sm ${hBetter ? 'text-emerald-400 font-bold' : 'text-white'}`}>
+      <div className={`flex-1 text-right font-mono text-sm ${hBetter ? 'text-brand-400 font-bold' : 'text-white'}`}>
         {hv != null ? `${hv}${suffix}` : '—'}
       </div>
-      <div className="w-32 text-center text-[10px] text-slate-400 uppercase tracking-widest">{label}</div>
-      <div className={`flex-1 text-left font-mono text-sm ${aBetter ? 'text-emerald-400 font-bold' : 'text-white'}`}>
+      <div className="w-28 sm:w-32 text-center text-[10px] text-slate-400 uppercase tracking-wider font-medium">{label}</div>
+      <div className={`flex-1 text-left font-mono text-sm ${aBetter ? 'text-brand-400 font-bold' : 'text-white'}`}>
         {av != null ? `${av}${suffix}` : '—'}
       </div>
     </div>
@@ -56,10 +56,10 @@ const ComparisonRow = memo(function ComparisonRow({ label, homeVal, awayVal, hig
 
 const MiniStat = memo(function MiniStat({ label, value, sub }) {
   return (
-    <div className="bg-white/5 rounded-lg p-2.5 text-center">
+    <div className="bg-white/[0.04] rounded-xl p-3 text-center border border-white/[0.04]">
       <div className="text-lg font-bold text-white font-mono">{value ?? '—'}</div>
-      <div className="text-[10px] text-slate-400 uppercase">{label}</div>
-      {sub && <div className="text-[10px] text-slate-500 mt-0.5">{sub}</div>}
+      <div className="text-[10px] text-slate-400 uppercase tracking-wider font-medium mt-0.5">{label}</div>
+      {sub && <div className="text-[10px] text-slate-400 mt-0.5">{sub}</div>}
     </div>
   )
 })
@@ -75,15 +75,15 @@ const RecordBar = memo(function RecordBar({ record, teamName }) {
         <span className="text-white font-medium">{teamName}</span>
         <span className="text-slate-400">{record.played} matches</span>
       </div>
-      <div className="flex h-2.5 rounded-full overflow-hidden">
-        <div className="bg-emerald-500" style={{ width: `${wPct}%` }} />
+      <div className="flex h-2 rounded-full overflow-hidden">
+        <div className="bg-brand-500" style={{ width: `${wPct}%` }} />
         <div className="bg-amber-500" style={{ width: `${dPct}%` }} />
         <div className="bg-red-500" style={{ width: `${100 - wPct - dPct}%` }} />
       </div>
-      <div className="flex justify-between text-[10px]">
-        <span className="text-emerald-400">{record.wins}W ({record.win_pct}%)</span>
+      <div className="flex justify-between text-[10px] font-medium">
+        <span className="text-brand-400">{record.wins}W ({record.win_pct}%)</span>
         <span className="text-amber-400">{record.draws}D ({record.draw_pct}%)</span>
-        <span className="text-red-400">{record.losses}L ({record.loss_pct}%)</span>
+        <span className="text-rose-400">{record.losses}L ({record.loss_pct}%)</span>
       </div>
     </div>
   )
@@ -93,9 +93,9 @@ const Tab = memo(function Tab({ active, onClick, icon, label }) {
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg transition-all whitespace-nowrap ${active
-        ? 'bg-brand-500/20 text-brand-400 border border-brand-500/30'
-        : 'text-slate-400 hover:text-white hover:bg-white/5'
+      className={`flex items-center gap-1.5 px-3.5 py-2 text-xs font-medium rounded-xl transition-all whitespace-nowrap ${active
+        ? 'bg-brand-500/12 text-brand-400 border border-brand-500/20 shadow-sm shadow-brand-500/10'
+        : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]'
         }`}
     >
       {icon}
@@ -1145,19 +1145,11 @@ export default function MatchDetail() {
   const [selectedAIModel, setSelectedAIModel] = useState('gpt-oss-120b')
   const [aiModelLabel, setAiModelLabel] = useState(null)
 
-  const AD_URL = "https://www.effectivegatecpm.com/e9ijstbwxv?key=a85b2260471a16f2f429d5bbb843fb33"
-
-  const triggerAd = () => {
-    window.open(AD_URL, '_blank')
-  }
-
   const handleAIAnalysis = async () => {
     if (!prediction) {
       toast.error('Generate a prediction first')
       return
     }
-    // Ad for every AI button click
-    triggerAd()
 
     setAiLoading(true)
     try {
@@ -1185,13 +1177,10 @@ export default function MatchDetail() {
   const { analysis: aiSections, prediction: aiPredSections } = useMemo(() => parseAISections(aiAnalysis), [aiAnalysis])
 
   const handlePredictionClick = () => {
-    triggerAd()
     predict()
   }
 
   const handleScrapeClick = async () => {
-    triggerAd()
-
     if (isFinished) {
       scrape()
     } else {
@@ -1249,7 +1238,7 @@ export default function MatchDetail() {
               <select
                 value={selectedAIModel}
                 onChange={e => setSelectedAIModel(e.target.value)}
-                className="bg-white/10 text-white text-xs border border-white/20 rounded-lg px-2 py-2 focus:outline-none focus:border-brand-500/50 cursor-pointer col-span-2 sm:col-span-1"
+                className="bg-white/[0.04] text-white text-xs border border-white/[0.08] rounded-xl px-3 py-2 cursor-pointer col-span-2 sm:col-span-1"
                 disabled={aiLoading}
               >
                 <option value="gpt-oss-120b">GPT OSS 120B</option>
@@ -1269,7 +1258,7 @@ export default function MatchDetail() {
       />
 
       {/* Match Header Card */}
-      <div className="glass-card p-4 sm:p-6">
+      <div className="glass-card-elevated p-5 sm:p-7">
         <div className="flex items-center justify-between gap-2 sm:gap-8">
           <div className="flex-1 text-right">
             <div className="text-base sm:text-xl font-bold text-white">{home}</div>
@@ -1326,8 +1315,8 @@ export default function MatchDetail() {
               <div className="text-xs text-amber-200/90 mt-1">
                 Historical matches are missing for one or both teams. Scrape league results first to unlock full 100-match analysis.
               </div>
-              <Link to="/data" className="inline-flex mt-3 text-xs text-brand-300 hover:text-brand-200 underline">
-                Open Data Manager
+              <Link to="/settings" className="inline-flex mt-3 text-xs text-brand-300 hover:text-brand-200 underline">
+                Open Settings
               </Link>
             </div>
           )}

@@ -6,11 +6,8 @@ import Layout from './components/Layout'
 import Dashboard from './pages/Dashboard'
 import Matches from './pages/Matches'
 import MatchDetail from './pages/MatchDetail'
-import Blogs from './pages/Blogs'
 import Predictions from './pages/Predictions'
-
 import Standings from './pages/Standings'
-import Scrapes from './pages/Scrapes'
 import DataManager from './pages/DataManager'
 
 const queryClient = new QueryClient({
@@ -45,12 +42,9 @@ export default function App() {
               <Route path="/" element={<Dashboard />} />
               <Route path="/matches" element={<Matches />} />
               <Route path="/matches/:id" element={<MatchDetail />} />
-              <Route path="/blogs" element={<Blogs />} />
               <Route path="/predictions" element={<Predictions />} />
-
               <Route path="/standings" element={<Standings />} />
-              <Route path="/scrapes" element={<Scrapes />} />
-              <Route path="/data" element={<DataManager />} />
+              <Route path="/settings" element={<DataManager />} />
             </Route>
           </Routes>
         </Suspense>

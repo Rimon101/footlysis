@@ -5,7 +5,8 @@ import {
   triggerScrape, triggerFixtureScrape, triggerApiFootballScrape,
   getScrapeStatus, getFixtureScrapeStatus, getApiFootballScrapeStatus,
   getAvailableLeagues,
-  recalculateStats, recalculateElo
+  recalculateStats, recalculateElo,
+  seedWorldCup, getWorldCupSeedStatus,
 } from '../services/api'
 import {
   getScrapeHistory, addScrapeEntry, clearScrapeHistory,
@@ -13,7 +14,7 @@ import {
 } from '../services/storage'
 import { LoadingState } from '../components/States'
 import { PageHeader, SectionTitle, Badge } from '../components/UI'
-import { Database, RefreshCw, Download, Activity, Calendar, Trash2, HardDrive } from 'lucide-react'
+import { Database, RefreshCw, Download, Activity, Calendar, Trash2, HardDrive, Trophy } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 export default function DataManager() {
@@ -48,6 +49,25 @@ export default function DataManager() {
     queryKey: ['api-football-scrape-status'],
     queryFn: getApiFootballScrapeStatus,
     refetchInterval: 5000,
+  })
+
+  const { data: wcStatus, refetch: refetchWcStatus } = useQuery({
+    queryKey: ['world-cup-seed-status'],
+    queryFn: getWorldCupSeedStatus,
+    refetchInterval: 3000,
+  })
+
+  const wcMut = useMutation({
+    mutationFn: () => seedWorldCup(),
+    onSuccess: () => {
+      addScrapeEntry('world-cup-seed', 'FIFA World Cup 2026', 'started')
+      setScrapeHistory(getScrapeHistory())
+      toast.success('Seeding World Cup 2026 — league, 48 teams, 104 matches…')
+      setTimeout(() => {
+        refetchWcStatus().then(() => qc.invalidateQueries({ queryKey: ['leagues'] }))
+      }, 1500)
+    },
+    onError: () => toast.error('World Cup seed failed — check ADMIN_API_KEY'),
   })
 
   // Primary "Results" scrape – use free scrapers (Football-Data, Understat, ESPN, FBref)
@@ -253,6 +273,48 @@ export default function DataManager() {
       </div>
 
 
+
+      {/* World Cup 2026 — one-off seed */}
+      <div className="glass-card p-5 space-y-4 border border-amber-500/20">
+        <div className="flex items-center gap-2">
+          <Trophy className="w-4 h-4 text-amber-400" />
+          <span className="font-semibold text-white">FIFA World Cup 2026</span>
+          <Badge variant="yellow">One-off tournament</Badge>
+        </div>
+        <p className="text-xs text-slate-400 leading-relaxed">
+          Adds the 48 national teams, 12 groups, and all 104 fixtures (group stage + knockout) using
+          the official draw (5 Dec 2025). Open matches only — no scores, no odds — but they will
+          appear under <em>Matches → Upcoming</em> and are available for predictions.
+        </p>
+        <div className="flex items-center gap-3">
+          <button
+            className="btn-primary flex items-center gap-2"
+            disabled={wcMut.isPending || wcStatus?.status === 'running'}
+            onClick={() => wcMut.mutate()}
+          >
+            {wcMut.isPending || wcStatus?.status === 'running' ? (
+              <RefreshCw className="w-4 h-4 animate-spin" />
+            ) : (
+              <Trophy className="w-4 h-4" />
+            )}
+            {wcStatus?.matches || wcMut.isPending ? 'Re-seed World Cup 2026' : 'Seed World Cup 2026'}
+          </button>
+          {wcStatus && wcStatus.status && wcStatus.status !== 'idle' && (
+            <div className="text-xs text-slate-400">
+              {wcStatus.status === 'running' && <span className="text-yellow-400">seeding…</span>}
+              {wcStatus.status === 'completed' && (
+                <span className="text-green-400">
+                  done — {wcStatus.league} league, {wcStatus.teams} teams, {wcStatus.matches} new matches
+                  {wcStatus.skipped ? `, ${wcStatus.skipped} skipped` : ''}
+                </span>
+              )}
+              {wcStatus.status === 'error' && (
+                <span className="text-red-400">{wcStatus.error}</span>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* API-Football Scrape Status */}
       {apiFootballEntries.length > 0 && (

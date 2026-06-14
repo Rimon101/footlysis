@@ -24,6 +24,16 @@ from app.services.dixon_coles import update_elo_ratings
 from app.dependencies import verify_admin_key
 from app.services.api_football import scrape_api_football_league
 from app.services.normalization import normalize_team_name
+from app.data.worldcup_2026 import (
+    LEAGUE_NAME as WC_LEAGUE_NAME,
+    LEAGUE_COUNTRY,
+    LEAGUE_SEASON,
+    LEAGUE_LOGO,
+    GROUPS as WC_GROUPS,
+    COUNTRY_CODE as WC_COUNTRY_CODE,
+    get_group_stage_fixtures,
+    get_knockout_fixtures,
+)
 
 router = APIRouter(prefix="/data", tags=["data"])
 
@@ -859,3 +869,167 @@ async def _run_player_scrape(league: str):
             }
     except Exception as e:
         _player_scrape_status = {"status": "error", "league": league, "message": str(e)}
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# FIFA World Cup 2026 — one-off tournament seed
+# ──────────────────────────────────────────────────────────────────────────────
+
+_wc_status: dict = {}
+
+
+async def _get_or_create_wc_team(db: AsyncSession, name: str, league_id: int) -> Team:
+    """Find or create a national team, with a deterministic short_name and country."""
+    result = await db.execute(select(Team).where(Team.name == name, Team.league_id == league_id))
+    team = result.scalar_one_or_none()
+    if team:
+        return team
+
+    short = name[:3].upper() if not name.startswith("UEFA") and not name.startswith("African") else "TBD"
+    country = name if name not in WC_COUNTRY_CODE else name  # we use team name as country name
+    team = Team(
+        name=name,
+        short_name=short,
+        league_id=league_id,
+        country=country,
+    )
+    db.add(team)
+    await db.flush()
+    return team
+
+
+async def _seed_world_cup() -> dict:
+    """Idempotently insert the World Cup 2026 league, 48 teams, and 104 fixtures."""
+    _wc_status["status"] = "running"
+    _wc_status["started"] = datetime.now(timezone.utc).isoformat()
+    summary = {"league": "created", "teams": 0, "matches": 0, "skipped": 0}
+    try:
+        async with AsyncSessionLocal() as db:
+            # 1. League
+            result = await db.execute(select(League).where(League.name == WC_LEAGUE_NAME))
+            league = result.scalar_one_or_none()
+            if not league:
+                league = League(
+                    name=WC_LEAGUE_NAME,
+                    country=LEAGUE_COUNTRY,
+                    season=LEAGUE_SEASON,
+                    logo_url=LEAGUE_LOGO,
+                )
+                db.add(league)
+                await db.flush()
+                summary["league"] = "created"
+            else:
+                summary["league"] = "exists"
+            league_id = league.id
+
+            # 2. Teams
+            team_cache: dict[str, Team] = {}
+            for group_letter, teams_in_group in WC_GROUPS.items():
+                for team_name in teams_in_group:
+                    if team_name in team_cache:
+                        continue
+                    t = await _get_or_create_wc_team(db, team_name, league_id)
+                    team_cache[team_name] = t
+                    summary["teams"] += 1
+
+            # 3. Fixtures (group stage + knockout)
+            def _to_utc(y, m, d, t):
+                local = datetime(y, m, d, *map(int, t.split(":")))
+                return (local + timedelta(hours=4)).replace(tzinfo=timezone.utc)
+
+            YEAR = 2026
+            all_fixtures = []
+            for f in get_group_stage_fixtures():
+                all_fixtures.append({
+                    "home": f["home_team"],
+                    "away": f["away_team"],
+                    "match_date": _to_utc(f["year"], f["month"], f["day"], f["time_et"]),
+                    "matchday": None,
+                    "stage_label": f"Group {f['group']}",
+                })
+            stage_names = {"R32": "Round of 32", "R16": "Round of 16",
+                           "QF": "Quarter-final", "SF": "Semi-final",
+                           "3RD": "Third place", "F": "Final"}
+            for f in get_knockout_fixtures():
+                all_fixtures.append({
+                    "home": f["home_label"],
+                    "away": f["away_label"],
+                    "match_date": _to_utc(YEAR, f["month"], f["day"], f["time_et"]),
+                    "matchday": f["match"],
+                    "stage_label": stage_names[f["stage"]],
+                })
+
+            # Knockout placeholders ("1A", "3B/C/D/E/F", "W97", "L109", …) need
+            # stub teams so the row can be inserted.  Each one is created under
+            # the World Cup league with a [WC] tag so it can be renamed later.
+            # NOTE: must run BEFORE the fixture loop, not after.
+            for fx_placeholder in (
+                "1A", "1B", "1C", "1D", "1E", "1F", "1G", "1H", "1I", "1J", "1K", "1L",
+                "2A", "2B", "2C", "2D", "2E", "2F", "2G", "2H",
+                "3A", "3B", "3C", "3D", "3E", "3F", "3H", "3I",
+                "3B/C/D/E/F", "3C/D/E/F", "3A/B/F/H/I", "3A/C/D/F", "3B/C/E/F/I",
+                "3A/B/C/D", "3A/B/C", "3A/B/C/D", "3D/E/F/I", "3C/D/E/F",
+                "3E/F/H/I", "3D/E/H/I", "3A/B/C",
+                "W89", "W90", "W91", "W92", "W93", "W94", "W95", "W96",
+                "W97", "W98", "W99", "W100", "W101", "W102", "W103", "W104",
+                "W105", "W106", "W107", "W108", "W109", "W110",
+                "L109", "L110",
+            ):
+                if fx_placeholder in team_cache:
+                    continue
+                team_cache[fx_placeholder] = await _get_or_create_wc_team(
+                    db, f"[WC] {fx_placeholder}", league_id
+                )
+                summary["teams"] += 1
+
+            for fx in all_fixtures:
+                home = team_cache[fx["home"]]
+                away = team_cache[fx["away"]]
+
+                # idempotency: same (league, home, away, date)
+                existing_q = await db.execute(
+                    select(Match).where(
+                        Match.league_id == league_id,
+                        Match.home_team_id == home.id,
+                        Match.away_team_id == away.id,
+                        Match.match_date == fx["match_date"],
+                    )
+                )
+                if existing_q.scalar_one_or_none():
+                    summary["skipped"] += 1
+                    continue
+
+                db.add(Match(
+                    league_id=league_id,
+                    home_team_id=home.id,
+                    away_team_id=away.id,
+                    match_date=fx["match_date"],
+                    season=LEAGUE_SEASON,
+                    matchday=fx["matchday"],
+                    status="scheduled",
+                ))
+                summary["matches"] += 1
+
+            await db.commit()
+        _wc_status.update({
+            "status": "completed",
+            "completed": datetime.now(timezone.utc).isoformat(),
+            **summary,
+        })
+        return _wc_status
+    except Exception as exc:
+        _wc_status.update({"status": "error", "error": str(exc)})
+        raise
+
+
+@router.post("/seed-world-cup", dependencies=[Depends(verify_admin_key)])
+async def seed_world_cup(background_tasks: BackgroundTasks):
+    """Seed the World Cup 2026 league, teams and fixtures (idempotent)."""
+    background_tasks.add_task(_seed_world_cup)
+    return {"status": "seed_started"}
+
+
+@router.get("/world-cup-seed-status")
+async def world_cup_seed_status():
+    return _wc_status
+

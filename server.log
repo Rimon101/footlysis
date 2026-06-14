@@ -1,0 +1,17 @@
+E:\Footlysis\backend\app\routers\__init__.py:1: FastAPIDeprecationWarning: `example` has been deprecated, please use `examples` instead
+  from app.routers import matches, teams, players, predictions, betting, leagues, data, dashboard
+INFO:     Started server process [10592]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+[OK] Database tables initialised
+INFO:     127.0.0.1:50288 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53577 - "POST /data/seed-world-cup HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53578 - "GET /data/world-cup-seed-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54923 - "GET /data/world-cup-seed-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55918 - "GET /data/world-cup-seed-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63063 - "GET /matches/upcoming?days=60&league_id=26 HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:63064 - "GET /matches/upcoming?days=60&league_id=26 HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:63068 - "GET /matches/upcoming?days=60&league_id=26 HTTP/1.1" 422 Unprocessable Content
+INFO:     127.0.0.1:63070 - "GET /matches/upcoming?days=30&league_id=26 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59840 - "GET /leagues/26 HTTP/1.1" 200 OK

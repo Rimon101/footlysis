@@ -91,4 +91,8 @@ export const recalculateElo = leagueId => api.post('/data/recalculate-elo', leag
 export const scrapePlayerStats = league => api.post(`/data/scrape-players/${encodeURIComponent(league)}`, null, { headers: getAdminHeaders() }).then(r => r.data)
 export const getPlayerScrapeStatus = () => api.get('/data/player-scrape-status').then(r => r.data)
 
+// ─── World Cup 2026 seed ────────────────────────────────────────────────────
+export const seedWorldCup = () => api.post('/data/seed-world-cup', null, { headers: getAdminHeaders() }).then(r => r.data)
+export const getWorldCupSeedStatus = () => api.get('/data/world-cup-seed-status').then(r => r.data)
+
 export default api

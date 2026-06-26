@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Outlet, NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, Calendar, TrendingUp,
-  Table2, BookOpen, Settings2, Menu, X, Zap
+  Settings2, Menu, X, Zap
 } from 'lucide-react'
 import MobileNav from './MobileNav'
 
@@ -10,8 +10,6 @@ const mainNav = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/matches', label: 'Matches', icon: Calendar },
   { to: '/predictions', label: 'Predictions', icon: TrendingUp },
-  { to: '/standings', label: 'Standings', icon: Table2 },
-  { to: '/blogs', label: 'Blogs', icon: BookOpen },
 ]
 
 const bottomNav = [

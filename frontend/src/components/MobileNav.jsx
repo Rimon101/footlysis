@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, Calendar, TrendingUp,
-  Table2, BookOpen, Settings2,
+  Settings2,
 } from 'lucide-react'
 import { cn } from '../lib/utils'
 
@@ -14,8 +14,6 @@ const tabs = [
   { to: '/',            label: 'Home',     icon: LayoutDashboard, end: true },
   { to: '/matches',     label: 'Matches',  icon: Calendar },
   { to: '/predictions', label: 'Predict',  icon: TrendingUp },
-  { to: '/standings',   label: 'Table',    icon: Table2 },
-  { to: '/blogs',       label: 'Blogs',    icon: BookOpen },
   { to: '/settings',    label: 'Settings', icon: Settings2 },
 ]
 

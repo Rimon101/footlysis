@@ -7,9 +7,7 @@ import Dashboard from './pages/Dashboard'
 import Matches from './pages/Matches'
 import MatchDetail from './pages/MatchDetail'
 import Predictions from './pages/Predictions'
-import Standings from './pages/Standings'
 import DataManager from './pages/DataManager'
-import Blogs from './pages/Blogs'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -47,9 +45,7 @@ export default function App() {
               <Route path="/matches" element={<Matches />} />
               <Route path="/matches/:id" element={<MatchDetail />} />
               <Route path="/predictions" element={<Predictions />} />
-              <Route path="/standings" element={<Standings />} />
               <Route path="/settings" element={<DataManager />} />
-              <Route path="/blogs" element={<Blogs />} />
             </Route>
           </Routes>
         </Suspense>

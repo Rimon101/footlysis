@@ -1197,12 +1197,20 @@ async def scrape_international_results() -> List[Dict]:
             away = "Curacao"
 
         if home in wc_teams or away in wc_teams:
+            def _parse_score(val):
+                if val is None or val == "" or str(val).upper() in ("NA", "NAN", "NULL"):
+                    return None
+                try:
+                    return int(val)
+                except ValueError:
+                    return None
+
             matches.append({
                 "date": row["date"],
                 "home_team": home,
                 "away_team": away,
-                "home_score": int(row["home_score"]) if row["home_score"] not in (None, "") else None,
-                "away_score": int(row["away_score"]) if row["away_score"] not in (None, "") else None,
+                "home_score": _parse_score(row["home_score"]),
+                "away_score": _parse_score(row["away_score"]),
                 "tournament": row["tournament"],
                 "city": row["city"],
                 "country": row["country"],

@@ -87,7 +87,7 @@ export default function Dashboard() {
 
       {/* KPI Cards — Bento grid */}
       <BentoGrid>
-        <BentoTile span={6} md={3} lg={3}>
+        <BentoTile span={6} md={3} lg={3} plain>
           <StatCard
             label="Total Matches"
             value={totalMatches.toLocaleString()}
@@ -96,7 +96,7 @@ export default function Dashboard() {
             link="/matches"
           />
         </BentoTile>
-        <BentoTile span={6} md={3} lg={3}>
+        <BentoTile span={6} md={3} lg={3} plain>
           <StatCard
             label="Predictions"
             value={totalPredictions.toLocaleString()}
@@ -106,7 +106,7 @@ export default function Dashboard() {
             link="/predictions"
           />
         </BentoTile>
-        <BentoTile span={6} md={3} lg={3}>
+        <BentoTile span={6} md={3} lg={3} plain>
           <StatCard
             label="Scrapes"
             value={localStats.total_scrapes}
@@ -118,7 +118,7 @@ export default function Dashboard() {
             link="/settings"
           />
         </BentoTile>
-        <BentoTile span={6} md={3} lg={3}>
+        <BentoTile span={6} md={3} lg={3} plain>
           <StatCard
             label="Upcoming"
             value={upcomingCount}

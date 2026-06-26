@@ -22,6 +22,7 @@ export function BentoTile({
   md = 6,
   lg = 4,
   as: Tag = 'div',
+  plain = false,
   ...rest
 }) {
   // Build col-span classes dynamically. Tailwind JIT picks up literals that
@@ -34,7 +35,8 @@ export function BentoTile({
   return (
     <Tag
       className={cn(
-        'tile animate-bento-in p-5 sm:p-6',
+        plain ? '' : 'tile p-5 sm:p-6',
+        'animate-bento-in',
         colClass,
         smClass,
         mdClass,

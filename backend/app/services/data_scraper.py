@@ -1156,3 +1156,57 @@ async def scrape_single_match(
         result["status"] = "finished"
 
     return result
+
+
+async def scrape_international_results() -> List[Dict]:
+    """
+    Download complete historical international football matches from martj42's GitHub dataset,
+    and filter them for matches featuring any World Cup 2026 playing nation.
+    """
+    url = "https://raw.githubusercontent.com/martj42/international_results/master/results.csv"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+    }
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=60)) as resp:
+            if resp.status != 200:
+                raise Exception(f"Failed to download international matches: HTTP {resp.status}")
+            csv_text = await resp.text(encoding="utf-8")
+
+    reader = csv.DictReader(csv_text.splitlines())
+
+    wc_teams = {
+        "Mexico", "South Africa", "South Korea", "Canada", "Qatar", "Switzerland",
+        "Brazil", "Morocco", "Haiti", "Scotland", "United States", "Paraguay",
+        "Australia", "Germany", "Curacao", "Ivory Coast", "Ecuador", "Netherlands",
+        "Japan", "Tunisia", "Belgium", "Egypt", "Iran", "New Zealand", "Spain",
+        "Cape Verde", "Saudi Arabia", "Uruguay", "France", "Senegal", "Norway",
+        "Argentina", "Algeria", "Austria", "Jordan", "Portugal", "Uzbekistan",
+        "Colombia", "England", "Croatia", "Ghana", "Panama"
+    }
+
+    matches = []
+    for row in reader:
+        home = row["home_team"]
+        away = row["away_team"]
+
+        # Normalize Curaçao to Curacao (since it's Curacao in our WC GROUPS list)
+        if home == "Curaçao":
+            home = "Curacao"
+        if away == "Curaçao":
+            away = "Curacao"
+
+        if home in wc_teams or away in wc_teams:
+            matches.append({
+                "date": row["date"],
+                "home_team": home,
+                "away_team": away,
+                "home_score": int(row["home_score"]) if row["home_score"] not in (None, "") else None,
+                "away_score": int(row["away_score"]) if row["away_score"] not in (None, "") else None,
+                "tournament": row["tournament"],
+                "city": row["city"],
+                "country": row["country"],
+                "neutral": row["neutral"].upper() == "TRUE" if "neutral" in row else False,
+            })
+
+    return matches

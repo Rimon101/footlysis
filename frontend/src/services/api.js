@@ -95,4 +95,8 @@ export const getPlayerScrapeStatus = () => api.get('/data/player-scrape-status')
 export const seedWorldCup = () => api.post('/data/seed-world-cup', null, { headers: getAdminHeaders() }).then(r => r.data)
 export const getWorldCupSeedStatus = () => api.get('/data/world-cup-seed-status').then(r => r.data)
 
+// ─── World Cup Nations Scrape ───────────────────────────────────────────────
+export const scrapeNations = () => api.post('/data/scrape-nations', null, { headers: getAdminHeaders() }).then(r => r.data)
+export const getNationsScrapeStatus = () => api.get('/data/nations-scrape-status').then(r => r.data)
+
 export default api

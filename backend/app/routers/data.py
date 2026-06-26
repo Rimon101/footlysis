@@ -18,6 +18,7 @@ from app.services.data_scraper import (
     scrape_single_match,
     scrape_fbref_player_stats,
     LEAGUE_CODES,
+    scrape_international_results,
 )
 from app.services.form_calculator import calculate_team_form
 from app.services.dixon_coles import update_elo_ratings
@@ -1032,4 +1033,255 @@ async def seed_world_cup(background_tasks: BackgroundTasks):
 @router.get("/world-cup-seed-status")
 async def world_cup_seed_status():
     return _wc_status
+
+
+_nations_scrape_status: dict = {}
+
+
+async def _run_nations_scrape():
+    """Background task: fetch all historical international match results for World Cup 2026 playing nations."""
+    _nations_scrape_status["status"] = "running"
+    _nations_scrape_status["started"] = datetime.now(timezone.utc).isoformat()
+    _nations_scrape_status["message"] = "Downloading historical match dataset..."
+    summary = {"league_count": 0, "team_count": 0, "match_count": 0, "skipped_count": 0}
+    try:
+        # 1. Fetch matches from CSV
+        matches_data = await scrape_international_results()
+        _nations_scrape_status["message"] = f"Downloaded {len(matches_data)} matching rows. Processing database insertions..."
+        
+        # 2. Ensure the World Cup 2026 league and teams exist in the database (or seed it)
+        async with AsyncSessionLocal() as db:
+            result = await db.execute(select(League).where(League.name == WC_LEAGUE_NAME))
+            wc_league = result.scalar_one_or_none()
+            if not wc_league:
+                _nations_scrape_status["message"] = "Seeding World Cup 2026 league and team structures first..."
+                await _seed_world_cup()
+                result = await db.execute(select(League).where(League.name == WC_LEAGUE_NAME))
+                wc_league = result.scalar_one_or_none()
+            
+            wc_league_id = wc_league.id
+            
+            # Load all existing teams in memory
+            team_result = await db.execute(select(Team))
+            existing_teams = team_result.scalars().all()
+            
+            teams_map = {}
+            for t in existing_teams:
+                norm_name = normalize_team_name(t.name)
+                if norm_name not in teams_map or t.league_id == wc_league_id:
+                    teams_map[norm_name] = t
+            
+            # Load all existing leagues in memory
+            league_result = await db.execute(select(League))
+            existing_leagues = league_result.scalars().all()
+            leagues_map = {normalize_team_name(l.name): l for l in existing_leagues}
+            
+            new_leagues = {}
+            new_teams = {}
+            
+            # Pre-load existing matches in memory to avoid duplicate inserts
+            match_result = await db.execute(
+                select(Match.home_team_id, Match.away_team_id, Match.match_date)
+            )
+            existing_match_keys = set()
+            for h_id, a_id, m_date in match_result.all():
+                if m_date:
+                    date_str = m_date.strftime("%Y-%m-%d")
+                    existing_match_keys.add((h_id, a_id, date_str))
+            
+            # Helper to get/create team in memory/db cache
+            async def get_or_create_nation_team(name: str) -> Team:
+                norm_name = normalize_team_name(name)
+                if norm_name in teams_map:
+                    return teams_map[norm_name]
+                if norm_name in new_teams:
+                    return new_teams[norm_name]
+                
+                short = name[:3].upper()
+                t = Team(
+                    name=name,
+                    short_name=short,
+                    league_id=wc_league_id,
+                    country=name,
+                )
+                db.add(t)
+                new_teams[norm_name] = t
+                summary["team_count"] += 1
+                return t
+                
+            # Helper to get/create league in memory/db cache
+            async def get_or_create_tournament_league(name: str) -> League:
+                norm_name = normalize_team_name(name)
+                if norm_name in leagues_map:
+                    return leagues_map[norm_name]
+                if norm_name in new_leagues:
+                    return new_leagues[norm_name]
+                
+                l = League(
+                    name=name,
+                    country="International",
+                    season="2026",
+                )
+                db.add(l)
+                new_leagues[norm_name] = l
+                summary["league_count"] += 1
+                return l
+
+            # Collect unique names
+            unique_tournaments = set()
+            unique_nations = set()
+            for m in matches_data:
+                unique_tournaments.add(m["tournament"])
+                unique_nations.add(m["home_team"])
+                unique_nations.add(m["away_team"])
+                
+            for l_name in unique_tournaments:
+                await get_or_create_tournament_league(l_name)
+            
+            for t_name in unique_nations:
+                await get_or_create_nation_team(t_name)
+                
+            await db.flush()
+            
+            # Update mappings
+            for norm, l in new_leagues.items():
+                leagues_map[norm] = l
+            for norm, t in new_teams.items():
+                teams_map[norm] = t
+                
+            # Loop over matches and construct Match objects
+            for m in matches_data:
+                home_norm = normalize_team_name(m["home_team"])
+                away_norm = normalize_team_name(m["away_team"])
+                
+                home_team = teams_map[home_norm]
+                away_team = teams_map[away_norm]
+                league_obj = leagues_map[normalize_team_name(m["tournament"])]
+                
+                date_str = m["date"]
+                match_key = (home_team.id, away_team.id, date_str)
+                if match_key in existing_match_keys:
+                    summary["skipped_count"] += 1
+                    continue
+                
+                dt = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+                
+                home_goals = m["home_score"]
+                away_goals = m["away_score"]
+                
+                season_str = date_str[:4]
+                
+                match_obj = Match(
+                    league_id=league_obj.id,
+                    home_team_id=home_team.id,
+                    away_team_id=away_team.id,
+                    match_date=dt,
+                    season=season_str,
+                    home_goals=home_goals,
+                    away_goals=away_goals,
+                    status="finished",
+                )
+                db.add(match_obj)
+                existing_match_keys.add(match_key)
+                summary["match_count"] += 1
+            
+            _nations_scrape_status["message"] = "Saving matches to database..."
+            await db.commit()
+            
+            # Recalculating ELO ratings chronologically
+            _nations_scrape_status["message"] = "Recalculating Elo ratings for all national teams..."
+            query = select(Match).where(Match.status == "finished", Match.home_goals.isnot(None))
+            query = query.order_by(Match.match_date)
+            result = await db.execute(query)
+            all_finished = result.scalars().all()
+            
+            elo_map = {}
+            for m in all_finished:
+                home_elo = elo_map.get(m.home_team_id, 1500.0)
+                away_elo = elo_map.get(m.away_team_id, 1500.0)
+                new_home, new_away = update_elo_ratings(
+                    home_elo, away_elo, m.home_goals or 0, m.away_goals or 0
+                )
+                elo_map[m.home_team_id] = new_home
+                elo_map[m.away_team_id] = new_away
+                
+            for team_id, elo in elo_map.items():
+                t_row = (await db.execute(select(Team).where(Team.id == team_id))).scalar_one_or_none()
+                if t_row:
+                    t_row.elo_rating = elo
+            
+            # Recalculating team stats & forms
+            _nations_scrape_status["message"] = "Recalculating team stats and forms..."
+            all_teams = (await db.execute(select(Team))).scalars().all()
+            for team in all_teams:
+                m_q = select(Match).where(
+                    (Match.home_team_id == team.id) | (Match.away_team_id == team.id),
+                    Match.status == "finished",
+                ).order_by(Match.match_date)
+                team_matches = (await db.execute(m_q)).scalars().all()
+                if not team_matches:
+                    continue
+                
+                match_dicts = [
+                    {
+                        "home_team_id": tm.home_team_id,
+                        "away_team_id": tm.away_team_id,
+                        "home_goals": tm.home_goals or 0,
+                        "away_goals": tm.away_goals or 0,
+                        "xg_home": tm.xg_home or 0,
+                        "xg_away": tm.xg_away or 0,
+                        "match_date": tm.match_date,
+                    }
+                    for tm in team_matches
+                ]
+                form = calculate_team_form(match_dicts, team.id)
+                stats_q = await db.execute(select(TeamStats).where(TeamStats.team_id == team.id))
+                stats = stats_q.scalar_one_or_none()
+                if not stats:
+                    stats = TeamStats(team_id=team.id)
+                    db.add(stats)
+                
+                stats.form_last_5 = form["form_last_5"]
+                stats.form_last_10 = form["form_last_10"]
+                stats.wins = form["wins"]
+                stats.draws = form["draws"]
+                stats.losses = form["losses"]
+                stats.matches_played = form["matches"]
+                stats.rolling5_xg_for = form["rolling5_xg_for"]
+                stats.rolling5_xg_against = form["rolling5_xg_against"]
+                stats.rolling10_xg_for = form["rolling10_xg_for"]
+                stats.rolling10_xg_against = form["rolling10_xg_against"]
+                stats.goals_scored = form["goals_per_game"] * form["matches"]
+                stats.goals_conceded = form["conceded_per_game"] * form["matches"]
+                stats.clean_sheet_pct = form["clean_sheet_pct"]
+                stats.btts_pct = form["btts_pct"]
+                stats.points = form["wins"] * 3 + form["draws"]
+            
+            await db.commit()
+            
+        _nations_scrape_status.update({
+            "status": "completed",
+            "message": "Nations historical scrape and stats calculation finished successfully!",
+            "completed": datetime.now(timezone.utc).isoformat(),
+            **summary,
+        })
+    except Exception as exc:
+        _nations_scrape_status.update({
+            "status": "error",
+            "message": f"Error: {str(exc)}",
+            "completed": datetime.now(timezone.utc).isoformat(),
+        })
+        raise exc
+
+
+@router.post("/scrape-nations", dependencies=[Depends(verify_admin_key)])
+async def scrape_nations(background_tasks: BackgroundTasks):
+    """Trigger background scraping of historical results for World Cup playing nations."""
+    background_tasks.add_task(_run_nations_scrape)
+    return {"status": "nations_scrape_started"}
+
+
+@router.get("/nations-scrape-status")
+async def nations_scrape_status():
+    return _nations_scrape_status
 

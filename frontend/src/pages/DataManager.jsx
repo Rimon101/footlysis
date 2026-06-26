@@ -7,6 +7,7 @@ import {
   getAvailableLeagues,
   recalculateStats, recalculateElo,
   seedWorldCup, getWorldCupSeedStatus,
+  scrapeNations, getNationsScrapeStatus,
 } from '../services/api'
 import {
   getScrapeHistory, addScrapeEntry, clearScrapeHistory,
@@ -58,6 +59,7 @@ export default function DataManager() {
   })
 
   const wcMut = useMutation({
+    queryKey: ['seed-world-cup'],
     mutationFn: () => seedWorldCup(),
     onSuccess: () => {
       addScrapeEntry('world-cup-seed', 'FIFA World Cup 2026', 'started')
@@ -68,6 +70,25 @@ export default function DataManager() {
       }, 1500)
     },
     onError: () => toast.error('World Cup seed failed — check ADMIN_API_KEY'),
+  })
+
+  const { data: nationsStatus, refetch: refetchNationsStatus } = useQuery({
+    queryKey: ['nations-scrape-status'],
+    queryFn: getNationsScrapeStatus,
+    refetchInterval: 3000,
+  })
+
+  const nationsMut = useMutation({
+    mutationFn: () => scrapeNations(),
+    onSuccess: () => {
+      addScrapeEntry('nations-scrape', 'World Cup Nations Historical', 'started')
+      setScrapeHistory(getScrapeHistory())
+      toast.success('Started historical scrape for World Cup playing nations...')
+      setTimeout(() => {
+        refetchNationsStatus().then(() => qc.invalidateQueries({ queryKey: ['leagues'] }))
+      }, 1500)
+    },
+    onError: () => toast.error('Nations historical scrape failed — check ADMIN_API_KEY'),
   })
 
   // Primary "Results" scrape – use free scrapers (Football-Data, Understat, ESPN, FBref)
@@ -311,6 +332,51 @@ export default function DataManager() {
               )}
               {wcStatus.status === 'error' && (
                 <span className="text-red-400">{wcStatus.error}</span>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* World Cup Nations Scrape */}
+      <div className="glass-card p-5 space-y-4 border border-blue-500/20">
+        <div className="flex items-center gap-2">
+          <Activity className="w-4 h-4 text-blue-400" />
+          <span className="font-semibold text-white">World Cup Nations Historical Scrape</span>
+          <Badge variant="blue">Historical data</Badge>
+        </div>
+        <p className="text-xs text-slate-400 leading-relaxed">
+          Downloads all historical international matches (over 23,000 matches dating back to 1872, including friendlies,
+          continental cups, qualifications and World Cups) featuring the World Cup 2026 playing nations.
+          This will populate Elo ratings and team form statistics for all national teams.
+        </p>
+        <div className="flex items-center gap-3">
+          <button
+            className="btn-primary flex items-center gap-2"
+            disabled={nationsMut.isPending || nationsStatus?.status === 'running'}
+            onClick={() => nationsMut.mutate()}
+          >
+            {nationsMut.isPending || nationsStatus?.status === 'running' ? (
+              <RefreshCw className="w-4 h-4 animate-spin" />
+            ) : (
+              <Download className="w-4 h-4" />
+            )}
+            {nationsStatus?.status === 'completed' || nationsMut.isPending ? 'Re-scrape Nations History' : 'Scrape Nations History'}
+          </button>
+          {nationsStatus && nationsStatus.status && nationsStatus.status !== 'idle' && (
+            <div className="text-xs text-slate-400">
+              {nationsStatus.status === 'running' && (
+                <span className="text-yellow-400">
+                  {nationsStatus.message || 'scraping…'}
+                </span>
+              )}
+              {nationsStatus.status === 'completed' && (
+                <span className="text-green-400">
+                  Done! Loaded {nationsStatus.match_count} matches, {nationsStatus.team_count} teams, {nationsStatus.league_count} leagues ({nationsStatus.skipped_count} skipped).
+                </span>
+              )}
+              {nationsStatus.status === 'error' && (
+                <span className="text-red-400">{nationsStatus.message || 'Failed to scrape'}</span>
               )}
             </div>
           )}
